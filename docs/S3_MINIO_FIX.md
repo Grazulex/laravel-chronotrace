@@ -141,15 +141,15 @@ private function testS3Connection(): bool
 }
 ```
 
-## 🧪 Tests de Validation
+## 🧪 Tests de Validation - VALIDÉS ✅
 
-### Test 1: Diagnostic S3 Amélioré
+### Test 1: Diagnostic S3 Amélioré ✅
 ```bash
 cd /home/jean-marc-strauven/Dev/package-sandbox
 php artisan chronotrace:diagnose
 ```
 
-**Résultat attendu :**
+**Résultat obtenu :**
 ```
 💾 Storage Configuration:
   Storage type: s3
@@ -168,21 +168,62 @@ php artisan chronotrace:diagnose
   ✅ Storage configuration looks good
 ```
 
-### Test 2: Stockage de Trace Réel
+### Test 2: Stockage de Trace Réel ✅
 ```bash
-# Avec une route de test qui génère des événements
-curl http://localhost:8000/test-chronotrace
+# Génération de 4 traces de test
+curl http://localhost:8000/test
+curl http://localhost:8000/test?iteration=1
+curl http://localhost:8000/test?iteration=2  
+curl http://localhost:8000/test?iteration=3
 
-# Vérifier que la trace a été stockée
-php artisan chronotrace:list
+# Vérification du stockage
+php artisan chronotrace:list --full-id
 ```
 
-**Résultat attendu :**
-- La trace doit apparaître dans la liste
-- Le fichier ZIP doit être visible dans MinIO
-- Le replay doit fonctionner
+**Résultat obtenu :**
+```
++--------------------------------+-----------+---------------------+
+| Trace ID                       | Size      | Created At          |
++--------------------------------+-----------+---------------------+
+| ct_iOaUCaqIabpw3BeO_1753992752 | 949 bytes | 2025-07-31 20:12:32 |
+| ct_jHQ0MhZAFClV9NEE_1753992751 | 947 bytes | 2025-07-31 20:12:31 |
+| ct_9y8BmzLYKPSFUvrv_1753992750 | 946 bytes | 2025-07-31 20:12:30 |
+| ct_RCUpWbDVSu9Wow6P_1753992731 | 933 bytes | 2025-07-31 20:12:11 |
++--------------------------------+-----------+---------------------+
+Showing 20 of 4 traces.
+```
 
-### Test 3: Configuration MinIO
+### Test 3: Replay S3 ✅
+```bash
+php artisan chronotrace:replay ct_iOaUCaqIabpw3BeO_1753992752
+```
+
+**Résultat obtenu :**
+```
+=== TRACE INFORMATION ===
+🆔 Trace ID: ct_iOaUCaqIabpw3BeO_1753992752
+🕒 Timestamp: 2025-07-31T20:12:32+00:00
+🌍 Environment: local
+🔗 Request URL: http://localhost:8000/test?iteration=3
+📊 Response Status: 200
+⏱️  Duration: 0.00058197975158691ms
+💾 Memory Usage: 0.00 KB
+🌐 IP Address: 127.0.0.1
+🖥️  User Agent: curl/8.5.0
+```
+
+### Test 4: Suppression S3 ✅
+```bash
+php artisan chronotrace:purge --days=0 --confirm
+```
+
+**Résultat obtenu :**
+```
+Purging traces older than 0 days...
+Successfully purged 4 traces.
+```
+
+### Test 5: Configuration MinIO ✅
 ```env
 # .env
 CHRONOTRACE_STORAGE=s3

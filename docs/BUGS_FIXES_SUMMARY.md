@@ -171,9 +171,27 @@ php artisan chronotrace:replay ct_xxx --detailed
 CHRONOTRACE_STORAGE=s3
 CHRONOTRACE_S3_BUCKET=chronotrace
 CHRONOTRACE_S3_ENDPOINT=http://localhost:9000
+AWS_ACCESS_KEY_ID=chronotrace
+AWS_SECRET_ACCESS_KEY=chronotrace123
 
+# Test diagnostic complet
+php artisan chronotrace:diagnose
+# ✅ S3 connection fully functional
+
+# Test génération de traces
+curl http://localhost:8000/test
+
+# Test listing
 php artisan chronotrace:list
-# ✅ Fonctionne avec gestion d'erreurs robuste
+# ✅ Affiche toutes les traces S3
+
+# Test replay
+php artisan chronotrace:replay <trace-id>
+# ✅ Fonctionne parfaitement
+
+# Test suppression  
+php artisan chronotrace:purge --days=0 --confirm
+# ✅ Suppression S3 opérationnelle
 ```
 
 ---
