@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Grazulex\LaravelChronotrace\Services;
 
-use InvalidArgumentException;
 use Exception;
 use Grazulex\LaravelChronotrace\Jobs\StoreTraceJob;
 use Grazulex\LaravelChronotrace\Models\TraceContext;
@@ -16,6 +15,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;

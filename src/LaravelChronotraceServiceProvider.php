@@ -6,6 +6,7 @@ use Exception;
 use Grazulex\LaravelChronotrace\Commands\DiagnoseCommand;
 use Grazulex\LaravelChronotrace\Commands\InstallCommand;
 use Grazulex\LaravelChronotrace\Commands\ListCommand;
+use Grazulex\LaravelChronotrace\Commands\MiddlewareTestCommand;
 use Grazulex\LaravelChronotrace\Commands\PurgeCommand;
 use Grazulex\LaravelChronotrace\Commands\RecordCommand;
 use Grazulex\LaravelChronotrace\Commands\ReplayCommand;
@@ -82,6 +83,7 @@ class LaravelChronotraceServiceProvider extends ServiceProvider
                 ListCommand::class,
                 PurgeCommand::class,
                 DiagnoseCommand::class,
+                MiddlewareTestCommand::class,
             ]);
         }
 

@@ -92,6 +92,6 @@ return [
     'queue_fallback' => env('CHRONOTRACE_QUEUE_FALLBACK', true), // Fallback vers sync si queue échoue
 
     // Debug et développement
-    'debug' => env('CHRONOTRACE_DEBUG', false),
+    'debug' => env('CHRONOTRACE_DEBUG', env('APP_DEBUG', false)), // Auto-enable en mode debug
     'local_replay_db' => env('CHRONOTRACE_REPLAY_DB', 'sqlite'), // sqlite | memory
 ];

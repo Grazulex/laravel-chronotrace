@@ -119,12 +119,64 @@ Puis consultez `storage/logs/laravel.log` pour voir les messages de debug Chrono
 # Tester la configuration complète
 php artisan chronotrace:diagnose
 
+# Tester spécifiquement le middleware
+php artisan chronotrace:test-middleware
+
 # Lister les traces existantes
 php artisan chronotrace:list
 
 # Enregistrer une trace de test
 php artisan chronotrace:record http://localhost:8000/
 ```
+
+## Problème : Middleware Ne Génère Pas de Traces
+
+### Diagnostic
+```bash
+# 1. Tester le middleware
+php artisan chronotrace:test-middleware
+
+# 2. Activer le debug
+# Dans .env
+CHRONOTRACE_DEBUG=true
+
+# 3. Tester une requête et vérifier les logs
+tail -f storage/logs/laravel.log | grep ChronoTrace
+```
+
+### Solutions
+
+#### 1. Vérifier l'Enregistrement du Middleware
+Dans `bootstrap/app.php` (Laravel 11+):
+```php
+use Grazulex\LaravelChronotrace\Middleware\ChronoTraceMiddleware;
+
+return Application::configure(basePath: dirname(__DIR__))
+    // ... autres configurations
+    ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(append: [
+            ChronoTraceMiddleware::class,
+        ]);
+        $middleware->api(append: [
+            ChronoTraceMiddleware::class,
+        ]);
+    })
+    // ... reste de la configuration
+```
+
+#### 2. Vérifier la Configuration
+```bash
+# Dans .env
+CHRONOTRACE_ENABLED=true
+CHRONOTRACE_MODE=always  # Pour tester
+CHRONOTRACE_DEBUG=true
+```
+
+#### 3. Mode de Capture
+- `always`: Capture toutes les requêtes
+- `record_on_error`: Capture seulement les erreurs (500+)
+- `sample`: Capture selon sample_rate
+- `targeted`: Capture seulement les routes ciblées
 
 ## Configurations Recommandées par Environnement
 

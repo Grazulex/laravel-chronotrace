@@ -23,11 +23,51 @@ Si l'installation automatique échoue, ajoutez manuellement dans `bootstrap/app.
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Grazulex\LaravelChronotrace\Middleware\ChronoTraceMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(/* ... */)
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
+            ChronoTraceMiddleware::class,
+        ]);
+        $middleware->api(append: [
+            ChronoTraceMiddleware::class,
+        ]);
+    })
+    ->withExceptions(function (Exceptions $exceptions) {
+        //
+    })->create();
+```
+
+## Test d'Installation
+
+Après installation, testez immédiatement :
+
+```bash
+# 1. Tester le middleware
+php artisan chronotrace:test-middleware
+
+# 2. Diagnostiquer la configuration
+php artisan chronotrace:diagnose
+
+# 3. Configuration debug pour test
+# Dans .env
+CHRONOTRACE_ENABLED=true
+CHRONOTRACE_MODE=always
+CHRONOTRACE_DEBUG=true
+QUEUE_CONNECTION=sync
+
+# 4. Test avec serveur
+php artisan serve
+# Dans un autre terminal :
+curl http://localhost:8000/
+# Vérifier logs :
+tail -f storage/logs/laravel.log | grep ChronoTrace
+
+# 5. Vérifier les traces générées
+php artisan chronotrace:list
+```
             \Grazulex\LaravelChronotrace\Middleware\ChronoTraceMiddleware::class,
         ]);
         $middleware->api(append: [
