@@ -162,9 +162,11 @@ class DiagnoseCommand extends Command
 
                 case 's3':
                 case 'minio':
-                    $bucket = config('chronotrace.s3.bucket');
-                    $region = config('chronotrace.s3.region');
-                    $endpoint = config('chronotrace.s3.endpoint');
+                    $bucket = config('chronotrace.s3.bucket') ?? env('CHRONOTRACE_S3_BUCKET');
+                    $region = config('chronotrace.s3.region') ?? env('AWS_DEFAULT_REGION');
+                    $endpoint = config('chronotrace.s3.endpoint') ?? env('CHRONOTRACE_S3_ENDPOINT');
+                    $accessKey = env('AWS_ACCESS_KEY_ID');
+                    $secretKey = env('AWS_SECRET_ACCESS_KEY');
 
                     $bucketString = is_string($bucket) ? $bucket : 'not-configured';
                     $regionString = is_string($region) ? $region : 'not-configured';
@@ -173,6 +175,23 @@ class DiagnoseCommand extends Command
                     $this->line("  S3/MinIO region: <info>{$regionString}</info>");
                     if (is_string($endpoint) && $endpoint) {
                         $this->line("  S3/MinIO endpoint: <info>{$endpoint}</info>");
+                    }
+                    
+                    // Vérifier les credentials
+                    if (empty($accessKey)) {
+                        $this->line('  ❌ AWS_ACCESS_KEY_ID not configured');
+                        return false;
+                    }
+                    if (empty($secretKey)) {
+                        $this->line('  ❌ AWS_SECRET_ACCESS_KEY not configured');
+                        return false;
+                    }
+                    
+                    $this->line('  🔑 Credentials configured');
+                    
+                    // Test de connexion S3 réel
+                    if (!$this->testS3Connection()) {
+                        return false;
                     }
                     break;
             }
@@ -183,6 +202,67 @@ class DiagnoseCommand extends Command
         } catch (Exception $e) {
             $this->line("  ❌ Storage error: {$e->getMessage()}");
 
+            return false;
+        }
+    }
+    
+    /**
+     * Test de connexion S3 réel avec écriture/lecture/suppression
+     */
+    private function testS3Connection(): bool
+    {
+        try {
+            // Créer un fichier de test
+            $testFileName = 'traces/diagnostic-test-' . uniqid() . '.txt';
+            $testContent = 'ChronoTrace S3 connection test - ' . date('Y-m-d H:i:s');
+            
+            $this->line('  🧪 Testing S3 write capability...');
+            
+            // Tenter d'écrire un fichier de test
+            $disk = config('chronotrace.storage') === 's3' ? 'chronotrace_s3' : 'local';
+            \Illuminate\Support\Facades\Storage::disk($disk)->put($testFileName, $testContent);
+            
+            $this->line('  ✅ S3 write successful');
+            
+            // Tenter de lire le fichier
+            $this->line('  🧪 Testing S3 read capability...');
+            $readContent = \Illuminate\Support\Facades\Storage::disk($disk)->get($testFileName);
+            
+            if ($readContent !== $testContent) {
+                $this->line('  ❌ S3 read failed - content mismatch');
+                return false;
+            }
+            
+            $this->line('  ✅ S3 read successful');
+            
+            // Vérifier que le fichier existe
+            $this->line('  🧪 Testing S3 file existence...');
+            if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($testFileName)) {
+                $this->line('  ❌ S3 file existence check failed');
+                return false;
+            }
+            
+            $this->line('  ✅ S3 file existence confirmed');
+            
+            // Nettoyer le fichier de test
+            $this->line('  🧹 Cleaning up test file...');
+            \Illuminate\Support\Facades\Storage::disk($disk)->delete($testFileName);
+            
+            $this->line('  ✅ S3 connection fully functional');
+            return true;
+            
+        } catch (Exception $e) {
+            $this->line("  ❌ S3 connection test failed: {$e->getMessage()}");
+            
+            // Essayer de nettoyer même en cas d'erreur
+            try {
+                if (isset($testFileName) && isset($disk)) {
+                    \Illuminate\Support\Facades\Storage::disk($disk)->delete($testFileName);
+                }
+            } catch (Exception) {
+                // Ignorer les erreurs de nettoyage
+            }
+            
             return false;
         }
     }

@@ -221,29 +221,79 @@ class TraceStorage
     private function createBundle(string $tempDir, string $bundlePath): void
     {
         $zip = new ZipArchive;
-        $fullPath = Storage::disk($this->disk)->path($bundlePath);
+        $tempZipPath = sys_get_temp_dir() . '/chronotrace_bundle_' . uniqid() . '.zip';
 
-        // S'assurer que le dossier parent existe
-        $parentDir = dirname($fullPath);
-        if (! is_dir($parentDir)) {
-            mkdir($parentDir, 0755, true);
-        }
+        try {
+            if ($zip->open($tempZipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+                $this->addDirectoryToZip($zip, $tempDir, '');
+                $zip->close();
 
-        if ($zip->open($fullPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
-            $this->addDirectoryToZip($zip, $tempDir, '');
-            $zip->close();
+                // Upload le fichier ZIP selon le type de disk
+                if ($this->isS3Disk()) {
+                    // Pour S3, utiliser put avec le contenu du fichier
+                    $zipContent = file_get_contents($tempZipPath);
+                    if ($zipContent !== false) {
+                        Storage::disk($this->disk)->put($bundlePath, $zipContent);
+                    }
+                } else {
+                    // Pour les disks locaux, utiliser l'ancienne méthode
+                    $fullPath = Storage::disk($this->disk)->path($bundlePath);
+                    $parentDir = dirname($fullPath);
+                    if (! is_dir($parentDir)) {
+                        mkdir($parentDir, 0755, true);
+                    }
+                    copy($tempZipPath, $fullPath);
+                }
+            }
+        } finally {
+            // Nettoyer le fichier ZIP temporaire
+            if (file_exists($tempZipPath)) {
+                unlink($tempZipPath);
+            }
         }
     }
 
     private function extractBundle(string $bundlePath, string $tempDir): void
     {
         $zip = new ZipArchive;
-        $fullPath = Storage::disk($this->disk)->path($bundlePath);
-
-        if ($zip->open($fullPath) === true) {
-            $zip->extractTo($tempDir);
-            $zip->close();
+        
+        if ($this->isS3Disk()) {
+            // Pour S3, télécharger d'abord le fichier en local
+            $tempZipPath = sys_get_temp_dir() . '/chronotrace_extract_' . uniqid() . '.zip';
+            
+            try {
+                $zipContent = Storage::disk($this->disk)->get($bundlePath);
+                if ($zipContent !== null) {
+                    file_put_contents($tempZipPath, $zipContent);
+                    
+                    if ($zip->open($tempZipPath) === true) {
+                        $zip->extractTo($tempDir);
+                        $zip->close();
+                    }
+                }
+            } finally {
+                if (file_exists($tempZipPath)) {
+                    unlink($tempZipPath);
+                }
+            }
+        } else {
+            // Pour les disks locaux, utiliser l'ancienne méthode
+            $fullPath = Storage::disk($this->disk)->path($bundlePath);
+            
+            if ($zip->open($fullPath) === true) {
+                $zip->extractTo($tempDir);
+                $zip->close();
+            }
         }
+    }
+
+    /**
+     * Vérifie si le disk courant est un disk S3
+     */
+    private function isS3Disk(): bool
+    {
+        $diskConfig = config("filesystems.disks.{$this->disk}");
+        return isset($diskConfig['driver']) && $diskConfig['driver'] === 's3';
     }
 
     /**
