@@ -29,6 +29,15 @@ return [
         'max_payload_size' => 1024 * 1024, // 1MB - au-delà, on stocke en blob séparé
     ],
 
+    // Configuration de capture des événements
+    'capture' => [
+        'database' => env('CHRONOTRACE_CAPTURE_DATABASE', true),
+        'cache' => env('CHRONOTRACE_CAPTURE_CACHE', true),
+        'http' => env('CHRONOTRACE_CAPTURE_HTTP', true),
+        'jobs' => env('CHRONOTRACE_CAPTURE_JOBS', true),
+        'events' => env('CHRONOTRACE_CAPTURE_EVENTS', false), // Désactivé par défaut (verbose)
+    ],
+
     // Sécurité et PII
     /*
     |--------------------------------------------------------------------------

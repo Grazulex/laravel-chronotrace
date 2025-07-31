@@ -67,3 +67,7 @@ parameters:
         -
             message: '#Property .* is never read, only written#'
             path: src/Storage/TraceStorage.php
+        -
+            message: '#Parameter \#1 \$headers .* expects array<string, mixed>, array given#'
+            paths:
+                - src/Listeners/*
