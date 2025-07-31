@@ -4,10 +4,51 @@ ChronoTrace offers extensive configuration options to control when and how trace
 
 ## Configuration File
 
-The configuration file is located at `config/chronotrace.php` after publishing:
+The configuration file is located at `config/chronotrace.php` after installation:
 
 ```bash
+# Install and configure automatically (recommended)
+php artisan chronotrace:install
+
+# Or manually publish configuration
 php artisan vendor:publish --tag=chronotrace-config
+```
+
+## Quick Setup with Environment Variables
+
+Set these in your `.env` file for quick configuration:
+
+```env
+# Basic Configuration
+CHRONOTRACE_ENABLED=true
+CHRONOTRACE_MODE=record_on_error
+CHRONOTRACE_STORAGE=local
+
+# Recording Configuration
+CHRONOTRACE_SAMPLE_RATE=0.001
+CHRONOTRACE_RETENTION_DAYS=15
+
+# Event Capture
+CHRONOTRACE_CAPTURE_DATABASE=true
+CHRONOTRACE_CAPTURE_CACHE=true
+CHRONOTRACE_CAPTURE_HTTP=true
+CHRONOTRACE_CAPTURE_JOBS=true
+CHRONOTRACE_CAPTURE_EVENTS=false
+
+# Performance
+CHRONOTRACE_ASYNC_STORAGE=true
+CHRONOTRACE_QUEUE_CONNECTION=database
+CHRONOTRACE_QUEUE=chronotrace
+CHRONOTRACE_QUEUE_FALLBACK=true
+
+# S3/MinIO Storage (optional)
+CHRONOTRACE_S3_BUCKET=chronotrace
+CHRONOTRACE_S3_REGION=us-east-1
+CHRONOTRACE_S3_ENDPOINT=https://minio.example.com
+CHRONOTRACE_S3_PREFIX=traces
+
+# Debug
+CHRONOTRACE_DEBUG=false
 ```
 
 ## Recording Modes
@@ -98,6 +139,166 @@ Control which types of events are captured:
     'cache' => env('CHRONOTRACE_CAPTURE_CACHE', true),
     'http' => env('CHRONOTRACE_CAPTURE_HTTP', true),
     'jobs' => env('CHRONOTRACE_CAPTURE_JOBS', true),
+    'events' => env('CHRONOTRACE_CAPTURE_EVENTS', false), // Can be verbose
+    'request' => true, // HTTP request details
+    'response' => true, // HTTP response details
+    'mail' => true, // Email sending events
+    'notifications' => true, // Push notifications
+    'filesystem' => false, // File operations (can be heavy)
+],
+```
+
+- **`database`** - SQL queries, transactions, and bindings
+- **`cache`** - Cache hits, misses, writes, and deletions
+- **`http`** - External HTTP requests made by your application
+- **`jobs`** - Queue job processing, failures, and completions
+- **`events`** - Laravel events (disabled by default as it can be verbose)
+- **`request/response`** - HTTP request/response details
+- **`mail/notifications`** - Email and notification events
+- **`filesystem`** - File operations (disabled by default for performance)
+
+## Performance Configuration
+
+### Asynchronous Storage
+
+```php
+'async_storage' => env('CHRONOTRACE_ASYNC_STORAGE', true),
+'queue_connection' => env('CHRONOTRACE_QUEUE_CONNECTION', null), // null = auto-detect
+'queue_name' => env('CHRONOTRACE_QUEUE', 'chronotrace'),
+'queue_fallback' => env('CHRONOTRACE_QUEUE_FALLBACK', true),
+```
+
+- **`async_storage`** - Store traces asynchronously via queues for better performance
+- **`queue_connection`** - Queue connection to use (null for auto-detection)
+- **`queue_name`** - Queue name for ChronoTrace jobs
+- **`queue_fallback`** - Fall back to synchronous storage if queue fails
+
+### Auto-Detection of Queue Connection
+
+ChronoTrace automatically detects available queue connections in this order:
+1. Redis
+2. Database
+3. Sync (fallback)
+
+## Security Configuration
+
+### PII Scrubbing
+
+```php
+'scrub' => [
+    'password',
+    'token',
+    'secret',
+    'key',
+    'authorization',
+    'cookie',
+    'session',
+    'credit_card',
+    'ssn',
+    'email',
+    'phone',
+],
+```
+
+These field names will have their values automatically masked in traces.
+
+## Advanced Configuration
+
+### Debug Mode
+
+```php
+'debug' => env('CHRONOTRACE_DEBUG', env('APP_DEBUG', false)),
+'local_replay_db' => env('CHRONOTRACE_REPLAY_DB', 'sqlite'),
+```
+
+- **`debug`** - Enable debug output and additional logging
+- **`local_replay_db`** - Database type for local trace replay (sqlite, memory)
+
+## Environment-Specific Examples
+
+### Development Environment
+
+```php
+// config/chronotrace.php for development
+return [
+    'enabled' => true,
+    'mode' => 'always', // Capture everything for debugging
+    'storage' => 'local',
+    'retention_days' => 7,
+    'async_storage' => false, // Synchronous for immediate feedback
+    'debug' => true,
+    'capture' => [
+        'database' => true,
+        'cache' => true,
+        'http' => true,
+        'jobs' => true,
+        'events' => true, // Enable for full debugging
+        'filesystem' => true,
+    ],
+];
+```
+
+### Staging Environment
+
+```php
+// config/chronotrace.php for staging
+return [
+    'enabled' => true,
+    'mode' => 'sample',
+    'sample_rate' => 0.05, // 5% of requests
+    'storage' => 'local',
+    'retention_days' => 15,
+    'async_storage' => true,
+    'capture' => [
+        'database' => true,
+        'cache' => true,
+        'http' => true,
+        'jobs' => true,
+        'events' => false,
+    ],
+];
+```
+
+### Production Environment
+
+```php
+// config/chronotrace.php for production
+return [
+    'enabled' => true,
+    'mode' => 'record_on_error', // Only on errors
+    'storage' => 's3',
+    'retention_days' => 30,
+    'async_storage' => true,
+    'capture' => [
+        'database' => true,
+        'cache' => true,
+        'http' => true,
+        'jobs' => true,
+        'events' => false, // Disabled for performance
+        'filesystem' => false,
+    ],
+    's3' => [
+        'bucket' => 'production-chronotrace',
+        'region' => 'us-east-1',
+        'path_prefix' => 'traces',
+    ],
+];
+```
+
+## Validation and Testing
+
+After configuration, validate your setup:
+
+```bash
+# Diagnose configuration
+php artisan chronotrace:diagnose
+
+# Test middleware setup
+php artisan chronotrace:test-middleware
+
+# Test recording
+php artisan chronotrace:record /test-endpoint
+```
     'events' => env('CHRONOTRACE_CAPTURE_EVENTS', false),
 ],
 ```

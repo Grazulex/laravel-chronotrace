@@ -114,8 +114,23 @@ php artisan chronotrace:replay {trace-id} --cache
 # View only HTTP requests
 php artisan chronotrace:replay {trace-id} --http
 
+# View only queue jobs
+php artisan chronotrace:replay {trace-id} --jobs
+
+# View detailed information with context, headers, and content
+php artisan chronotrace:replay {trace-id} --detailed
+
+# Show SQL query bindings for debugging
+php artisan chronotrace:replay {trace-id} --db --bindings
+
 # Generate Pest tests from traces
 php artisan chronotrace:replay {trace-id} --generate-test
+
+# Generate tests in custom directory
+php artisan chronotrace:replay {trace-id} --generate-test --test-path=tests/Integration
+
+# Output as JSON for programmatic processing
+php artisan chronotrace:replay {trace-id} --format=json
 ```
 
 ---
@@ -167,11 +182,11 @@ Each trace includes comprehensive information:
 ## 🔧 Available Commands
 
 - **`chronotrace:install`** – Install and configure ChronoTrace middleware
-- **`chronotrace:record`** – Record a trace for a specific URL  
-- **`chronotrace:list`** – List stored traces with metadata  
-- **`chronotrace:replay`** – Replay and analyze a captured trace  
+- **`chronotrace:record`** – Record a trace for a specific URL with advanced options
+- **`chronotrace:list`** – List stored traces with metadata and filtering options
+- **`chronotrace:replay`** – Replay and analyze captured traces with advanced filtering and output formats
 - **`chronotrace:purge`** – Remove old traces based on retention policy
-- **`chronotrace:diagnose`** – Diagnose configuration and potential issues
+- **`chronotrace:diagnose`** – Diagnose configuration and potential issues with comprehensive checks
 - **`chronotrace:test-middleware`** – Test middleware installation and activation
 
 ### Command Examples
@@ -180,21 +195,29 @@ Each trace includes comprehensive information:
 # Installation and setup
 chronotrace:install --force
 
-# Record traces
+# Record traces with various methods
 chronotrace:record /api/users --method=GET
 chronotrace:record /checkout --method=POST --data='{"cart_id": 123}'
 chronotrace:record /api/protected --headers='{"Authorization":"Bearer token"}'
 
-# List and analyze
+# Advanced recording with timeout
+chronotrace:record /api/slow-endpoint --timeout=60
+
+# List and analyze traces
 chronotrace:list --limit=10 --full-id
-chronotrace:replay {trace-id} --db --cache
+chronotrace:replay {trace-id} --db --cache --bindings
+chronotrace:replay {trace-id} --detailed --context --headers
 chronotrace:replay {trace-id} --generate-test --test-path=tests/Integration
+
+# Output in different formats
+chronotrace:replay {trace-id} --format=json
+chronotrace:replay {trace-id} --format=raw
 
 # Diagnostics and testing
 chronotrace:diagnose
 chronotrace:test-middleware
 
-# Maintenance
+# Maintenance and cleanup
 chronotrace:purge --days=7 --confirm
 ```  
 
