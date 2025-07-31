@@ -44,11 +44,18 @@ class LaravelChronotraceServiceProvider extends ServiceProvider
         $this->app->singleton(PIIScrubber::class);
         $this->app->singleton(TraceRecorder::class);
         $this->app->singleton(TraceStorage::class, function ($app): TraceStorage {
-            $disk = config('chronotrace.storage.disk', 'local');
-            $compression = config('chronotrace.storage.compression', true);
+            $storage = config('chronotrace.storage', 'local');
+            $compression = config('chronotrace.compression.enabled', true);
+
+            // Mapper le type de stockage vers le disk Laravel approprié
+            $disk = match ($storage) {
+                's3' => $this->configureS3Disk(),
+                'local' => 'local',
+                default => 'local'
+            };
 
             return new TraceStorage(
-                is_string($disk) ? $disk : 'local',
+                $disk,
                 is_bool($compression) ? $compression : true
             );
         });
@@ -130,5 +137,29 @@ class LaravelChronotraceServiceProvider extends ServiceProvider
             $events->listen(JobProcessed::class, [QueueEventListener::class, 'handleJobProcessed']);
             $events->listen(JobFailed::class, [QueueEventListener::class, 'handleJobFailed']);
         }
+    }
+
+    /**
+     * Configure le disk S3/MinIO pour ChronoTrace
+     */
+    private function configureS3Disk(): string
+    {
+        $config = config('chronotrace.s3', []);
+
+        // Configuration du disk S3 pour ChronoTrace
+        config(['filesystems.disks.chronotrace_s3' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => $config['region'] ?? 'us-east-1',
+            'bucket' => $config['bucket'] ?? 'chronotrace',
+            'url' => $config['endpoint'] ?? null,
+            'endpoint' => $config['endpoint'] ?? null,
+            'use_path_style_endpoint' => ! empty($config['endpoint']), // Pour MinIO
+            'root' => $config['path_prefix'] ?? 'traces',
+            'visibility' => 'private',
+        ]]);
+
+        return 'chronotrace_s3';
     }
 }
