@@ -17,14 +17,14 @@ class ReplayCommand extends Command
                                         {--format=table : Output format (table|json|raw)}
                                         {--generate-test : Generate a Pest test file}
                                         {--test-path=tests/Generated : Path for generated test files}
-                                        {--verbose : Show detailed information including context, headers, and response content}
+                                        {--detailed : Show detailed information including context, headers, and response content}
                                         {--context : Show Laravel context (versions, config, env vars)}
                                         {--headers : Show request and response headers}
                                         {--content : Show response content}
                                         {--bindings : Show SQL query bindings}
                                         {--compact : Show minimal information only}';
 
-    protected $description = 'Replay events from a stored trace or generate Pest tests. Use --verbose for detailed output, --context for Laravel info, --headers for HTTP details, --content for response body, --bindings for SQL parameters.';
+    protected $description = 'Replay events from a stored trace or generate Pest tests. Use --detailed for detailed output, --context for Laravel info, --headers for HTTP details, --content for response body, --bindings for SQL parameters.';
 
     public function handle(TraceStorage $storage): int
     {
@@ -52,19 +52,19 @@ class ReplayCommand extends Command
                 $this->displayTraceHeader($trace);
                 
                 // Afficher le contexte si demandé
-                if ($this->option('verbose') || $this->option('context')) {
+                if ($this->option('detailed') || $this->option('context')) {
                     $this->displayContext($trace);
                 }
                 
                 // Afficher les détails de la requête si demandé
-                if ($this->option('verbose') || $this->option('headers')) {
+                if ($this->option('detailed') || $this->option('headers')) {
                     $this->displayRequestDetails($trace);
                 }
                 
                 $this->displayCapturedEvents($trace);
                 
                 // Afficher les détails de la réponse si demandé
-                if ($this->option('verbose') || $this->option('headers') || $this->option('content')) {
+                if ($this->option('detailed') || $this->option('headers') || $this->option('content')) {
                     $this->displayResponseDetails($trace);
                 }
             }
@@ -245,7 +245,7 @@ class ReplayCommand extends Command
         $this->line('💾 Memory: ' . number_format($trace->response->memoryUsage / 1024, 2) . ' KB');
         
         // Headers de réponse
-        if (($this->option('verbose') || $this->option('headers')) && !empty($trace->response->headers)) {
+        if (($this->option('detailed') || $this->option('headers')) && !empty($trace->response->headers)) {
             $this->warn('📋 Response Headers:');
             foreach ($trace->response->headers as $key => $value) {
                 $valueStr = is_array($value) ? implode(', ', $value) : (string)$value;
@@ -269,7 +269,7 @@ class ReplayCommand extends Command
         }
         
         // Contenu de la réponse
-        if (($this->option('verbose') || $this->option('content')) && !empty($trace->response->content)) {
+        if (($this->option('detailed') || $this->option('content')) && !empty($trace->response->content)) {
             $this->warn('📄 Response Content:');
             $content = $trace->response->content;
             
@@ -489,7 +489,7 @@ class ReplayCommand extends Command
         $this->line("  🔍 [{$timestamp}] Query: {$sql} ({$time}ms on {$connection})");
         
         // Afficher les bindings si demandé et disponibles
-        if (($this->option('verbose') || $this->option('bindings')) && isset($event['bindings']) && is_array($event['bindings']) && !empty($event['bindings'])) {
+        if (($this->option('detailed') || $this->option('bindings')) && isset($event['bindings']) && is_array($event['bindings']) && !empty($event['bindings'])) {
             $this->line("     📎 Bindings: " . json_encode($event['bindings']));
         }
     }
@@ -580,7 +580,7 @@ class ReplayCommand extends Command
             $data = isset($event['data']) ? json_encode($event['data']) : 'N/A';
 
             $this->line("  🎯 [{$timestamp}] Event: {$eventName}");
-            if ($this->option('verbose') && $data !== 'N/A') {
+            if ($this->option('detailed') && $data !== 'N/A') {
                 $this->line("     📊 Data: {$data}");
             }
         }
