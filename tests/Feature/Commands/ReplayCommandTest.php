@@ -73,9 +73,12 @@ it('can replay an existing trace', function (): void {
 
     $this->artisan(ReplayCommand::class, ['trace-id' => 'abc123'])
         ->expectsOutput('Replaying trace abc123...')
-        ->expectsOutput('Replay functionality not yet implemented.')
-        ->expectsOutput('Trace data retrieved successfully:')
-        ->expectsOutput('Environment: testing')
+        ->expectsOutput('=== TRACE INFORMATION ===')
+        ->expectsOutput('🆔 Trace ID: abc123')
+        ->expectsOutput('🌍 Environment: testing')
+        ->expectsOutput('🔗 Request URL: https://example.com/test')
+        ->expectsOutput('📊 Response Status: 200')
+        ->expectsOutput('=== CAPTURED EVENTS ===')
         ->assertExitCode(0);
 });
 
