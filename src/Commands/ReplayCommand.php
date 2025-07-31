@@ -16,9 +16,15 @@ class ReplayCommand extends Command
                                         {--jobs : Show only job events}
                                         {--format=table : Output format (table|json|raw)}
                                         {--generate-test : Generate a Pest test file}
-                                        {--test-path=tests/Generated : Path for generated test files}';
+                                        {--test-path=tests/Generated : Path for generated test files}
+                                        {--verbose : Show detailed information including context, headers, and response content}
+                                        {--context : Show Laravel context (versions, config, env vars)}
+                                        {--headers : Show request and response headers}
+                                        {--content : Show response content}
+                                        {--bindings : Show SQL query bindings}
+                                        {--compact : Show minimal information only}';
 
-    protected $description = 'Replay events from a stored trace or generate Pest tests';
+    protected $description = 'Replay events from a stored trace or generate Pest tests. Use --verbose for detailed output, --context for Laravel info, --headers for HTTP details, --content for response body, --bindings for SQL parameters.';
 
     public function handle(TraceStorage $storage): int
     {
@@ -44,7 +50,23 @@ class ReplayCommand extends Command
                 $this->outputAsRaw($trace);
             } else {
                 $this->displayTraceHeader($trace);
+                
+                // Afficher le contexte si demandé
+                if ($this->option('verbose') || $this->option('context')) {
+                    $this->displayContext($trace);
+                }
+                
+                // Afficher les détails de la requête si demandé
+                if ($this->option('verbose') || $this->option('headers')) {
+                    $this->displayRequestDetails($trace);
+                }
+                
                 $this->displayCapturedEvents($trace);
+                
+                // Afficher les détails de la réponse si demandé
+                if ($this->option('verbose') || $this->option('headers') || $this->option('content')) {
+                    $this->displayResponseDetails($trace);
+                }
             }
         } catch (Exception $e) {
             $this->error("Failed to replay trace: {$e->getMessage()}");
@@ -68,6 +90,207 @@ class ReplayCommand extends Command
         $this->line("📊 Response Status: {$trace->response->status}");
         $this->line("⏱️  Duration: {$trace->response->duration}ms");
         $this->line('💾 Memory Usage: ' . number_format($trace->response->memoryUsage / 1024, 2) . ' KB');
+        
+        // Afficher les informations utilisateur si disponibles
+        if ($trace->request->user !== null) {
+            $this->line("👤 User: " . json_encode($trace->request->user));
+        }
+        
+        // Afficher l'IP et User Agent
+        if (!empty($trace->request->ip)) {
+            $this->line("🌐 IP Address: {$trace->request->ip}");
+        }
+        if (!empty($trace->request->userAgent)) {
+            $this->line("🖥️  User Agent: {$trace->request->userAgent}");
+        }
+        
+        $this->newLine();
+    }
+
+    /**
+     * Affiche le contexte Laravel détaillé
+     */
+    private function displayContext(TraceData $trace): void
+    {
+        $this->info('=== LARAVEL CONTEXT ===');
+        
+        // Versions
+        if (!empty($trace->context->laravel_version)) {
+            $this->line("🚀 Laravel Version: {$trace->context->laravel_version}");
+        }
+        if (!empty($trace->context->php_version)) {
+            $this->line("🐘 PHP Version: {$trace->context->php_version}");
+        }
+        
+        // Git information
+        if (!empty($trace->context->git_commit)) {
+            $this->line("📋 Git Commit: {$trace->context->git_commit}");
+        }
+        if (!empty($trace->context->branch)) {
+            $this->line("🌿 Git Branch: {$trace->context->branch}");
+        }
+        
+        // Configuration importante
+        if (!empty($trace->context->config)) {
+            $this->warn('⚙️  Configuration:');
+            foreach ($trace->context->config as $key => $value) {
+                $valueStr = is_bool($value) ? ($value ? 'true' : 'false') : (string)$value;
+                $this->line("   • {$key}: {$valueStr}");
+            }
+        }
+        
+        // Variables d'environnement importantes
+        if (!empty($trace->context->env_vars)) {
+            $this->warn('🌱 Environment Variables:');
+            foreach ($trace->context->env_vars as $key => $value) {
+                $valueStr = is_bool($value) ? ($value ? 'true' : 'false') : (string)$value;
+                $this->line("   • {$key}: {$valueStr}");
+            }
+        }
+        
+        // Packages installés
+        if (!empty($trace->context->packages)) {
+            $this->warn('📦 Installed Packages:');
+            foreach ($trace->context->packages as $package => $version) {
+                $this->line("   • {$package}: {$version}");
+            }
+        }
+        
+        // Middlewares
+        if (!empty($trace->context->middlewares)) {
+            $this->warn('🔒 Active Middlewares:');
+            foreach ($trace->context->middlewares as $middleware) {
+                $this->line("   • {$middleware}");
+            }
+        }
+        
+        // Service Providers
+        if (!empty($trace->context->providers)) {
+            $this->warn('🏗️  Service Providers:');
+            foreach ($trace->context->providers as $provider) {
+                $this->line("   • {$provider}");
+            }
+        }
+        
+        $this->newLine();
+    }
+
+    /**
+     * Affiche les détails de la requête
+     */
+    private function displayRequestDetails(TraceData $trace): void
+    {
+        $this->info('=== REQUEST DETAILS ===');
+        
+        $this->line("📝 Method: {$trace->request->method}");
+        $this->line("🔗 URL: {$trace->request->url}");
+        
+        // Query parameters
+        if (!empty($trace->request->query)) {
+            $this->warn('❓ Query Parameters:');
+            foreach ($trace->request->query as $key => $value) {
+                $valueStr = is_array($value) ? json_encode($value) : (string)$value;
+                $this->line("   • {$key}: {$valueStr}");
+            }
+        }
+        
+        // Input data (POST/PUT body)
+        if (!empty($trace->request->input)) {
+            $this->warn('📥 Input Data:');
+            foreach ($trace->request->input as $key => $value) {
+                $valueStr = is_array($value) ? json_encode($value) : (string)$value;
+                $this->line("   • {$key}: {$valueStr}");
+            }
+        }
+        
+        // Files uploaded
+        if (!empty($trace->request->files)) {
+            $this->warn('📁 Uploaded Files:');
+            foreach ($trace->request->files as $key => $file) {
+                $fileStr = is_array($file) ? json_encode($file) : (string)$file;
+                $this->line("   • {$key}: {$fileStr}");
+            }
+        }
+        
+        // Session data
+        if (!empty($trace->request->session)) {
+            $this->warn('🔐 Session Data:');
+            foreach ($trace->request->session as $key => $value) {
+                $valueStr = $key === '_token' ? '[SCRUBBED]' : (is_array($value) ? json_encode($value) : (string)$value);
+                $this->line("   • {$key}: {$valueStr}");
+            }
+        }
+        
+        // Headers
+        if (!empty($trace->request->headers)) {
+            $this->warn('📋 Request Headers:');
+            foreach ($trace->request->headers as $key => $value) {
+                $valueStr = is_array($value) ? implode(', ', $value) : (string)$value;
+                $this->line("   • {$key}: {$valueStr}");
+            }
+        }
+        
+        $this->newLine();
+    }
+
+    /**
+     * Affiche les détails de la réponse
+     */
+    private function displayResponseDetails(TraceData $trace): void
+    {
+        $this->info('=== RESPONSE DETAILS ===');
+        
+        $this->line("📊 Status: {$trace->response->status}");
+        $this->line("⏱️  Duration: {$trace->response->duration}ms");
+        $this->line('💾 Memory: ' . number_format($trace->response->memoryUsage / 1024, 2) . ' KB');
+        
+        // Headers de réponse
+        if (($this->option('verbose') || $this->option('headers')) && !empty($trace->response->headers)) {
+            $this->warn('📋 Response Headers:');
+            foreach ($trace->response->headers as $key => $value) {
+                $valueStr = is_array($value) ? implode(', ', $value) : (string)$value;
+                $this->line("   • {$key}: {$valueStr}");
+            }
+        }
+        
+        // Cookies
+        if (!empty($trace->response->cookies)) {
+            $this->warn('🍪 Cookies Set:');
+            foreach ($trace->response->cookies as $cookie) {
+                $cookieStr = is_array($cookie) ? json_encode($cookie) : (string)$cookie;
+                $this->line("   • {$cookieStr}");
+            }
+        }
+        
+        // Exception si présente
+        if ($trace->response->exception !== null) {
+            $this->error('❌ Exception:');
+            $this->line("   {$trace->response->exception}");
+        }
+        
+        // Contenu de la réponse
+        if (($this->option('verbose') || $this->option('content')) && !empty($trace->response->content)) {
+            $this->warn('📄 Response Content:');
+            $content = $trace->response->content;
+            
+            // Limiter la taille d'affichage
+            $maxLength = 1000;
+            if (strlen($content) > $maxLength) {
+                $content = substr($content, 0, $maxLength) . '... [TRUNCATED]';
+            }
+            
+            // Essayer de formater le JSON si possible
+            $decoded = json_decode($content, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $formatted = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+                if ($formatted !== false) {
+                    $content = $formatted;
+                }
+            }
+            
+            $this->line("   {$content}");
+        }
+        
         $this->newLine();
     }
 
@@ -103,8 +326,16 @@ class ReplayCommand extends Command
             $this->displayJobEvents($trace->jobs);
         }
 
-        // Afficher un résumé statistique
+        // Afficher les autres types d'événements si ils existent
         if ($showAll) {
+            $this->displayMailEvents($trace->mail);
+            $this->displayNotificationEvents($trace->notifications);
+            $this->displayCustomEvents($trace->events);
+            $this->displayFilesystemEvents($trace->filesystem);
+        }
+
+        // Afficher un résumé statistique
+        if ($showAll && !$this->option('compact')) {
             $this->displayEventsSummary($trace);
         }
     }
@@ -130,8 +361,7 @@ class ReplayCommand extends Command
             $timestamp = $this->getTimestampFormatted($event);
 
             match ($type) {
-                'query' => $this->line("  🔍 [{$timestamp}] Query: " . $this->getStringValue($event, 'sql', 'N/A') .
-                           ' (' . $this->getStringValue($event, 'time', '0') . 'ms on ' . $this->getStringValue($event, 'connection', 'N/A') . ')'),
+                'query' => $this->displayDatabaseQuery($event, $timestamp),
                 'transaction_begin' => $this->line("  🔄 [{$timestamp}] Transaction BEGIN on " . $this->getStringValue($event, 'connection', 'N/A')),
                 'transaction_commit' => $this->line("  ✅ [{$timestamp}] Transaction COMMIT on " . $this->getStringValue($event, 'connection', 'N/A')),
                 'transaction_rollback' => $this->line("  ❌ [{$timestamp}] Transaction ROLLBACK on " . $this->getStringValue($event, 'connection', 'N/A')),
@@ -246,6 +476,151 @@ class ReplayCommand extends Command
     }
 
     /**
+     * Affiche les détails d'une requête SQL
+     *
+     * @param  array<mixed>  $event
+     */
+    private function displayDatabaseQuery(array $event, string $timestamp): void
+    {
+        $sql = $this->getStringValue($event, 'sql', 'N/A');
+        $time = $this->getStringValue($event, 'time', '0');
+        $connection = $this->getStringValue($event, 'connection', 'N/A');
+        
+        $this->line("  🔍 [{$timestamp}] Query: {$sql} ({$time}ms on {$connection})");
+        
+        // Afficher les bindings si demandé et disponibles
+        if (($this->option('verbose') || $this->option('bindings')) && isset($event['bindings']) && is_array($event['bindings']) && !empty($event['bindings'])) {
+            $this->line("     📎 Bindings: " . json_encode($event['bindings']));
+        }
+    }
+
+    /**
+     * Affiche les événements de mail
+     *
+     * @param  array<mixed>  $mailEvents
+     */
+    private function displayMailEvents(array $mailEvents): void
+    {
+        if ($mailEvents === []) {
+            return;
+        }
+
+        $this->warn('📧 MAIL EVENTS');
+        foreach ($mailEvents as $event) {
+            if (! is_array($event)) {
+                continue;
+            }
+
+            $type = $this->getStringValue($event, 'type', 'unknown');
+            $timestamp = $this->getTimestampFormatted($event);
+            $to = $this->getStringValue($event, 'to', 'N/A');
+            $subject = $this->getStringValue($event, 'subject', 'N/A');
+
+            match ($type) {
+                'sending' => $this->line("  📤 [{$timestamp}] Sending email to: {$to} - Subject: {$subject}"),
+                'sent' => $this->line("  ✅ [{$timestamp}] Email sent to: {$to} - Subject: {$subject}"),
+                'failed' => $this->line("  ❌ [{$timestamp}] Email failed to: {$to} - Subject: {$subject}"),
+                default => $this->line("  ❓ [{$timestamp}] Unknown mail event: {$type}"),
+            };
+        }
+        $this->newLine();
+    }
+
+    /**
+     * Affiche les événements de notification
+     *
+     * @param  array<mixed>  $notificationEvents
+     */
+    private function displayNotificationEvents(array $notificationEvents): void
+    {
+        if ($notificationEvents === []) {
+            return;
+        }
+
+        $this->warn('🔔 NOTIFICATION EVENTS');
+        foreach ($notificationEvents as $event) {
+            if (! is_array($event)) {
+                continue;
+            }
+
+            $type = $this->getStringValue($event, 'type', 'unknown');
+            $timestamp = $this->getTimestampFormatted($event);
+            $channel = $this->getStringValue($event, 'channel', 'N/A');
+            $notifiable = $this->getStringValue($event, 'notifiable', 'N/A');
+
+            match ($type) {
+                'sending' => $this->line("  📤 [{$timestamp}] Sending notification via {$channel} to: {$notifiable}"),
+                'sent' => $this->line("  ✅ [{$timestamp}] Notification sent via {$channel} to: {$notifiable}"),
+                'failed' => $this->line("  ❌ [{$timestamp}] Notification failed via {$channel} to: {$notifiable}"),
+                default => $this->line("  ❓ [{$timestamp}] Unknown notification event: {$type}"),
+            };
+        }
+        $this->newLine();
+    }
+
+    /**
+     * Affiche les événements personnalisés Laravel
+     *
+     * @param  array<mixed>  $customEvents
+     */
+    private function displayCustomEvents(array $customEvents): void
+    {
+        if ($customEvents === []) {
+            return;
+        }
+
+        $this->warn('🎯 CUSTOM EVENTS');
+        foreach ($customEvents as $event) {
+            if (! is_array($event)) {
+                continue;
+            }
+
+            $eventName = $this->getStringValue($event, 'event', 'UnknownEvent');
+            $timestamp = $this->getTimestampFormatted($event);
+            $data = isset($event['data']) ? json_encode($event['data']) : 'N/A';
+
+            $this->line("  🎯 [{$timestamp}] Event: {$eventName}");
+            if ($this->option('verbose') && $data !== 'N/A') {
+                $this->line("     📊 Data: {$data}");
+            }
+        }
+        $this->newLine();
+    }
+
+    /**
+     * Affiche les événements de système de fichiers
+     *
+     * @param  array<mixed>  $filesystemEvents
+     */
+    private function displayFilesystemEvents(array $filesystemEvents): void
+    {
+        if ($filesystemEvents === []) {
+            return;
+        }
+
+        $this->warn('📁 FILESYSTEM EVENTS');
+        foreach ($filesystemEvents as $event) {
+            if (! is_array($event)) {
+                continue;
+            }
+
+            $type = $this->getStringValue($event, 'type', 'unknown');
+            $timestamp = $this->getTimestampFormatted($event);
+            $path = $this->getStringValue($event, 'path', 'N/A');
+            $disk = $this->getStringValue($event, 'disk', 'local');
+
+            match ($type) {
+                'read' => $this->line("  📖 [{$timestamp}] File READ: {$path} (disk: {$disk})"),
+                'write' => $this->line("  ✏️  [{$timestamp}] File WRITE: {$path} (disk: {$disk})"),
+                'delete' => $this->line("  🗑️  [{$timestamp}] File DELETE: {$path} (disk: {$disk})"),
+                'copy' => $this->line("  📋 [{$timestamp}] File COPY: {$path} (disk: {$disk})"),
+                'move' => $this->line("  📦 [{$timestamp}] File MOVE: {$path} (disk: {$disk})"),
+                default => $this->line("  ❓ [{$timestamp}] Unknown filesystem event: {$type}"),
+            };
+        }
+        $this->newLine();
+    }
+    /**
      * Affiche un résumé statistique des événements
      */
     private function displayEventsSummary(TraceData $trace): void
@@ -254,11 +629,14 @@ class ReplayCommand extends Command
         $cacheCount = count($trace->cache);
         $httpCount = count($trace->http);
         $jobsCount = count($trace->jobs);
-        $totalEvents = $dbCount + $cacheCount + $httpCount + $jobsCount;
+        $mailCount = count($trace->mail);
+        $notificationCount = count($trace->notifications);
+        $customEventCount = count($trace->events);
+        $filesystemCount = count($trace->filesystem);
+        $totalEvents = $dbCount + $cacheCount + $httpCount + $jobsCount + $mailCount + $notificationCount + $customEventCount + $filesystemCount;
 
         if ($totalEvents === 0) {
             $this->warn('🤷 No events captured in this trace.');
-
             return;
         }
 
@@ -267,6 +645,20 @@ class ReplayCommand extends Command
         $this->line("  🗄️  Cache events: {$cacheCount}");
         $this->line("  🌐 HTTP events: {$httpCount}");
         $this->line("  ⚙️  Job events: {$jobsCount}");
+        
+        if ($mailCount > 0) {
+            $this->line("  📧 Mail events: {$mailCount}");
+        }
+        if ($notificationCount > 0) {
+            $this->line("  🔔 Notification events: {$notificationCount}");
+        }
+        if ($customEventCount > 0) {
+            $this->line("  🎯 Custom events: {$customEventCount}");
+        }
+        if ($filesystemCount > 0) {
+            $this->line("  📁 Filesystem events: {$filesystemCount}");
+        }
+        
         $this->line("  📝 Total events: {$totalEvents}");
         $this->newLine();
     }
