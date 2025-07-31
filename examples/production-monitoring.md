@@ -2,6 +2,22 @@
 
 This guide shows how to effectively use ChronoTrace for production monitoring and issue detection.
 
+## Production Setup
+
+### Initial Installation and Validation
+
+```bash
+# Install and configure ChronoTrace
+composer require --dev grazulex/laravel-chronotrace
+php artisan chronotrace:install
+
+# Validate production configuration
+php artisan chronotrace:diagnose
+
+# Test middleware in production environment
+php artisan chronotrace:test-middleware
+```
+
 ## Production Configuration
 
 ### Recommended Production Setup
@@ -120,6 +136,14 @@ Job-related issues:
 echo "=== Daily ChronoTrace Error Report ==="
 echo "Date: $(date)"
 echo
+
+# First validate ChronoTrace is working
+php artisan chronotrace:diagnose > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "❌ ChronoTrace configuration issues detected"
+    php artisan chronotrace:diagnose
+    exit 1
+fi
 
 # Count traces from last 24 hours
 TRACE_COUNT=$(php artisan chronotrace:list --limit=1000 | grep "$(date +%Y-%m-%d)" | wc -l)

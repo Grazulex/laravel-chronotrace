@@ -437,6 +437,73 @@ php artisan chronotrace:replay {new-trace-id} --db | grep "Query:" | wc -l
 
 6. **Automate Analysis**: Create scripts for common analysis patterns
 
+7. **Generate Tests**: Create regression tests from interesting traces
+
+## Test Generation from Filtered Analysis
+
+### Generate Tests for Performance Issues
+
+```bash
+# Record a slow endpoint
+php artisan chronotrace:record /api/slow-endpoint
+
+# Get the trace ID
+TRACE_ID=$(php artisan chronotrace:list --limit=1 --full-id | tail -1 | awk '{print $2}')
+
+# Analyze the performance issue
+php artisan chronotrace:replay $TRACE_ID --db | grep "Query.*([0-9]{3,}" # Find slow queries
+
+# Generate a test to prevent regression
+php artisan chronotrace:replay $TRACE_ID --generate-test --test-path=tests/Performance
+
+# Review and customize the generated test
+cat tests/Performance/ChronoTrace_${TRACE_ID:0:8}_Test.php
+```
+
+### Generate Tests for External API Integration
+
+```bash
+# Record API integration
+php artisan chronotrace:record /api/external-integration \
+  --headers='{"Authorization":"Bearer test-token"}'
+
+TRACE_ID=$(php artisan chronotrace:list --limit=1 --full-id | tail -1 | awk '{print $2}')
+
+# Check external dependencies
+php artisan chronotrace:replay $TRACE_ID --http
+
+# Generate integration test
+php artisan chronotrace:replay $TRACE_ID --generate-test --test-path=tests/Integration
+
+# The test will include:
+# - HTTP status assertions
+# - Response structure validation
+# - Performance expectations
+# - External API call verification
+```
+
+### Generate Tests for Database Optimization
+
+```bash
+# Record before optimization
+php artisan chronotrace:record /api/unoptimized-endpoint
+BEFORE_ID=$(php artisan chronotrace:list --limit=1 --full-id | tail -1 | awk '{print $2}')
+
+# Apply optimization (eager loading, caching, etc.)
+# ... make code changes ...
+
+# Record after optimization
+php artisan chronotrace:record /api/unoptimized-endpoint  
+AFTER_ID=$(php artisan chronotrace:list --limit=1 --full-id | tail -1 | awk '{print $2}')
+
+# Compare query counts
+echo "Before: $(php artisan chronotrace:replay $BEFORE_ID --db | grep -c "Query:")"
+echo "After: $(php artisan chronotrace:replay $AFTER_ID --db | grep -c "Query:")"
+
+# Generate test from optimized version
+php artisan chronotrace:replay $AFTER_ID --generate-test --test-path=tests/Optimized
+```
+
 ## Next Steps
 
 - [Learn about production monitoring](production-monitoring.md)
