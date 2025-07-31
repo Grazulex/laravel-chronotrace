@@ -1,0 +1,34 @@
+name: "🚀 Enhancement"
+description: Suggest improvements to an existing feature
+labels: ["type:enhancement", "status:discussion"]
+body:
+  - type: textarea
+    id: current
+    attributes:
+      label: Current Behavior
+      description: What does the current feature do?
+      placeholder: |
+        The generator outputs all DTOs in one flat directory...
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Improvement
+      description: How could this be improved?
+      placeholder: |
+        Allow grouping DTOs in subdirectories based on namespace...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Area
+      options:
+        - generator
+        - validation
+        - docs
+        - tests
+        - other

@@ -1,0 +1,42 @@
+name: "🐞 Bug Report"
+description: Report a reproducible bug in Laravel Chronotrace
+labels: ["type:bug", "status:discussion"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Package Version
+      description: What version of Laravel Chronotrace are you using?
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: What is happening and what did you expect instead?
+      placeholder: |
+        When running `tdd:make`, I get a `TypeError` when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this bug?
+      placeholder: |
+        1. Run this command
+        2. Use this input YAML
+        3. Observe this output...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or Screenshots
+      description: If applicable, paste logs or screenshots that help explain the issue.
+    validations:
+      required: false

@@ -1,0 +1,18 @@
+providers:
+  - Grazulex\LaravelChronotrace\LaravelChronotraceServiceProvider
+
+workbench:
+  start: "/"
+  user: 1
+  
+  install: true
+  welcome: false
+  
+  build:
+    - env-file: .env.example
+    - migrate: true
+    - seed: true
+  
+  assets:
+    - from: "tests/Fixtures"
+      to: "tests/Fixtures"

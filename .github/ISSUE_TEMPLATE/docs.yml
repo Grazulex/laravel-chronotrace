@@ -1,0 +1,21 @@
+name: "📚 Documentation"
+description: Suggest an improvement to the documentation
+labels: ["scope:docs"]
+body:
+  - type: textarea
+    id: location
+    attributes:
+      label: Affected Page or Section
+      description: Where is the documentation missing or unclear?
+      placeholder: |
+        The README section about nested relations is unclear...
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Content
+      description: What would you like to see added or clarified?
+      placeholder: |
+        I suggest adding a full YAML + PHP DTO example with nested `address` fields...

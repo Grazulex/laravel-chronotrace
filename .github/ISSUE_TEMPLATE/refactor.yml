@@ -1,0 +1,23 @@
+name: "🧩 Refactor"
+description: Suggest an internal refactor for code clarity or structure
+labels: ["type:enhancement", "scope:generator", "refactor"]
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this refactor necessary?
+      placeholder: |
+        The generator class is doing too many things. We should separate it into...
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope of Refactor
+      description: Which classes or files are impacted?
+      placeholder: |
+        Mainly `DtoGenerator.php`, and some interfaces in `Contracts/`
+    validations:
+      required: true

@@ -1,0 +1,27 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: max
+    paths:
+        - src
+        - tests
+    
+    # Custom rules
+    reportUnmatchedIgnoredErrors: false
+    
+    # Exclude patterns
+    excludePaths:
+        - tests/Pest.php
+    
+    # Ignore specific rules for config files
+    ignoreErrors:
+        - 
+            message: '#Called .env. outside of the config directory#'
+            path: src/Config/chronotrace.php
+        -
+            message: '#Access to constant VERSION on an unknown class Pest\\Version#'
+            path: src/LaravelChronotraceServiceProvider.php
+        -
+            message: '#Class Pest\\Version not found#'
+            path: src/LaravelChronotraceServiceProvider.php

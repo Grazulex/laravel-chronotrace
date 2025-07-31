@@ -1,0 +1,65 @@
+# Configuration des labels pour Laravel Chronotrace
+# Ce fichier définit tous les labels utilisés pour les issues et PR
+
+# Scope - Domaines fonctionnels
+- name: "scope:docs"
+  description: "Documentation: markdowns, examples, readme, etc."
+  color: "0075ca"
+
+- name: "scope:commands"
+  description: "Related to the Chronotrace commands system and command definitions."
+  color: "0052cc"
+
+- name: "scope:config"
+  description: "Configuration files, chronotrace.php settings, and options."
+  color: "17a2b8"
+
+- name: "scope:cli"
+  description: "Command-line interface, artisan commands, and console output."
+  color: "28a745"
+
+- name: "scope:tests"
+  description: "Unit, integration, or feature testing coverage."
+  color: "0e8a16"
+
+- name: "scope:tests"
+  description: "TDD test management, draft tests, and test promotion."
+  color: "0e8a16"
+
+# Status - État des issues
+- name: "status:blocked"
+  description: "Blocked by another issue or dependency."
+  color: "d93f0b"
+
+- name: "status:discussion"
+  description: "Under discussion — needs brainstorming or user input."
+  color: "d4c5f9"
+
+- name: "status:ready"
+  description: "Ready to be worked on."
+  color: "0e8a16"
+
+- name: "status:wip"
+  description: "Work in progress."
+  color: "fbca04"
+
+# Type - Types d'issues
+- name: "type:bug"
+  description: "A confirmed or suspected issue causing incorrect behavior."
+  color: "d73a4a"
+
+- name: "type:enhancement"
+  description: "An improvement to an existing feature or internal logic."
+  color: "a2eeef"
+
+- name: "type:feature"
+  description: "A new user-facing capability or module."
+  color: "84b6eb"
+
+- name: "type:refactor"
+  description: "Code restructuring without changing behavior."
+  color: "fef2c0"
+
+- name: "type:security"
+  description: "Security vulnerability or security-related improvement."
+  color: "ff6b6b"

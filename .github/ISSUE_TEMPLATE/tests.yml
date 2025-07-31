@@ -1,0 +1,19 @@
+name: "🧪 Add or Improve Test Coverage"
+description: Propose new or improved test cases
+labels: ["scope:tests"]
+body:
+  - type: textarea
+    id: missing
+    attributes:
+      label: Missing Tests
+      description: Describe the feature or behavior that is not covered by tests.
+      placeholder: |
+        The `dto:definition-list` command is not tested with the `--compact` flag...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Suggested Tests
+      description: How would you cover this with a test?

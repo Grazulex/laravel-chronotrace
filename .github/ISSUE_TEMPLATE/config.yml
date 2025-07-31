@@ -1,0 +1,23 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: 💬 General Discussion or Questions
+    url: https://github.com/Grazulex/laravel-chronotrace/discussions
+    about: Please ask general questions, usage help, or share ideas here.
+
+issue_templates:
+  - name: 🐞 Bug Report
+    description: Report a reproducible bug in Laravel Chronotrace
+    file: bug.yml
+
+  - name: 🧪 Add or improve tests
+    description: Request or describe tests to be added or improved
+    file: tests.yml
+
+  - name: 📚 Documentation Update
+    description: Suggest an update or addition to the documentation
+    file: docs.yml
+
+  - name: 🧩 Refactor
+    description: Suggest an internal code cleanup or structural refactor
+    file: refactor.yml

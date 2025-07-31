@@ -1,0 +1,80 @@
+name: Release
+
+# Manual release trigger
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+      release_notes:
+        description: 'Release notes'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  manual-release:
+    runs-on: ubuntu-latest
+    if: github.actor == 'grazulex'  # Only allow grazulex to trigger releases
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick
+          coverage: none
+  
+      - name: Setup problem matchers
+        run: |
+            echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+            echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+  
+      - name: Install dependencies
+        run: |
+            composer require "laravel/framework:12.*" "orchestra/testbench:10.*" --no-interaction --no-update
+            composer update --prefer-stable --prefer-dist --no-interaction
+  
+      - name: List Installed Dependencies
+        run: composer show -D
+  
+      - name: Execute tests
+        run: |
+          vendor/bin/pest
+          vendor/bin/phpstan analyse --memory-limit=2G --configuration=phpstan.neon
+          
+      - name: Create Git tag
+        run: |
+          git config user.name "Jean-Marc Strauven"
+          git config user.email "jms@grazulex.be"
+          
+          # Check if tag already exists
+          if git rev-parse "v${{ github.event.inputs.version }}" >/dev/null 2>&1; then
+            echo "❌ Tag v${{ github.event.inputs.version }} already exists"
+            exit 1
+          fi
+          
+          # Create and push tag
+          git tag -a "v${{ github.event.inputs.version }}" -m "Release v${{ github.event.inputs.version }}"
+          git push origin "v${{ github.event.inputs.version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "v${{ github.event.inputs.version }}"
+          name: "Release v${{ github.event.inputs.version }}"
+          body: ${{ github.event.inputs.release_notes }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

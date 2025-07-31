@@ -1,0 +1,21 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "simplified_null_return": true,
+        "braces": {
+            "position_after_control_structures": "same"
+        },
+        "concat_space": {
+            "spacing": "one"
+        },
+        "not_operator_with_successor_space": true,
+        "ordered_imports": {
+            "sort_algorithm": "alpha"
+        },
+        "php_unit_strict": true,
+        "phpdoc_separation": true,
+        "single_quote": true,
+        "ternary_operator_spaces": true,
+        "trailing_comma_in_multiline": true
+    }
+}

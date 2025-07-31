@@ -1,0 +1,95 @@
+{
+    "name": "grazulex/laravel-chronotrace",
+    "description": "Record and replay Laravel requests deterministically and generate tests from production traces.",
+    "keywords": [
+        "laravel",
+        "chronotrace",
+        "time-tracking",
+        "pest",
+        "testing",
+        "activity-tracking",
+        "time-management",
+        "productivity",
+        "clean-code",
+        "php8.3",
+        "laravel12"
+    ],
+    "type": "library",
+    "homepage": "https://github.com/grazulex/laravel-chronotrace",
+    "require": {
+        "php": "^8.3",
+        "illuminate/support": "^12.19",
+        "nesbot/carbon": "^3.10",
+        "illuminate/contracts": "^12.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.22",
+        "pestphp/pest": "^3.8",
+        "pestphp/pest-plugin-laravel": "^3.2",
+        "larastan/larastan": "^3.4",
+        "rector/rector": "^2.0",
+        "doctrine/dbal": "^4.2",
+        "orchestra/testbench": "^10.0"
+    },
+    "suggest": {
+        "pestphp/pest": "Required to run and generate Chronotrace tests (version >=3.0)"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Grazulex\\LaravelChronotrace\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Grazulex\\LaravelChronotrace\\LaravelChronotraceServiceProvider"
+            ]
+        }
+    },
+    "authors": [
+        {
+            "name": "Jean-Marc Strauven",
+            "email": "jms@grazulex.be",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/Grazulex/laravel-chronotrace/issues",
+        "source": "https://github.com/Grazulex/laravel-chronotrace",
+        "forum": "https://github.com/Grazulex/laravel-chronotrace/discussions",
+        "docs": "https://github.com/Grazulex/laravel-chronotrace#readme"
+    },
+    "scripts": {
+        "test": [
+            "./vendor/bin/pest --colors=always --coverage"
+        ],
+        "pint": [
+            "./vendor/bin/pint"
+        ],
+        "phpstan": [
+            "./vendor/bin/phpstan analyse --memory-limit=2G --configuration=phpstan.neon"
+        ],
+        "rector": [
+            "./vendor/bin/rector"
+        ],
+        "full": [
+            "composer run-script pint",
+            "composer run-script phpstan",
+            "composer run-script rector",
+            "composer run-script test"
+        ]
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
