@@ -8,13 +8,14 @@ use Illuminate\Console\Command;
 
 class ListCommand extends Command
 {
-    protected $signature = 'chronotrace:list {--limit=20}';
+    protected $signature = 'chronotrace:list {--limit=20} {--full-id : Show full trace IDs instead of truncated}';
 
     protected $description = 'List stored traces';
 
     public function handle(TraceStorage $storage): int
     {
         $limit = (int) $this->option('limit');
+        $showFullId = (bool) $this->option('full-id');
 
         $this->info('Listing stored traces...');
 
@@ -29,7 +30,7 @@ class ListCommand extends Command
 
             $this->table(
                 ['Trace ID', 'Size', 'Created At'],
-                array_slice(array_map(function (mixed $trace): array {
+                array_slice(array_map(function (mixed $trace) use ($showFullId): array {
                     if (! is_array($trace)) {
                         return ['Unknown', 'Unknown', 'Unknown'];
                     }
@@ -38,7 +39,7 @@ class ListCommand extends Command
                     $traceId = isset($trace['trace_id']) && is_string($trace['trace_id']) ? $trace['trace_id'] : 'unknown';
 
                     return [
-                        substr($traceId, 0, 8) . '...',
+                        $showFullId ? $traceId : substr($traceId, 0, 8) . '...',
                         number_format($trace['size']) . ' bytes',
                         date('Y-m-d H:i:s', $timestamp),
                     ];

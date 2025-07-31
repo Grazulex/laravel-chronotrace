@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Override;
 use Grazulex\LaravelChronotrace\Models\TraceData;
 use Grazulex\LaravelChronotrace\Storage\TraceStorage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
+use Override;
 use Tests\TestCase;
 
 class S3StorageTest extends TestCase

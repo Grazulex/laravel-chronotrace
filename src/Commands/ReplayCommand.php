@@ -14,9 +14,11 @@ class ReplayCommand extends Command
                                         {--cache : Show only cache events}
                                         {--http : Show only HTTP events}
                                         {--jobs : Show only job events}
-                                        {--format=table : Output format (table|json|raw)}';
+                                        {--format=table : Output format (table|json|raw)}
+                                        {--generate-test : Generate a Pest test file}
+                                        {--test-path=tests/Generated : Path for generated test files}';
 
-    protected $description = 'Replay and display events from a stored trace';
+    protected $description = 'Replay events from a stored trace or generate Pest tests';
 
     public function handle(TraceStorage $storage): int
     {
@@ -34,7 +36,12 @@ class ReplayCommand extends Command
             }
 
             $this->displayTraceHeader($trace);
-            $this->displayCapturedEvents($trace);
+
+            if ($this->option('generate-test')) {
+                $this->generatePestTest($trace);
+            } else {
+                $this->displayCapturedEvents($trace);
+            }
         } catch (Exception $e) {
             $this->error("Failed to replay trace: {$e->getMessage()}");
 
@@ -310,5 +317,135 @@ class ReplayCommand extends Command
         }
 
         return 'N/A';
+    }
+
+    /**
+     * Génère un test Pest à partir d'une trace
+     */
+    private function generatePestTest(TraceData $trace): void
+    {
+        $this->info("Generating Pest test for trace {$trace->traceId}...");
+
+        $testPath = $this->option('test-path') ?: 'tests/Generated';
+        $testFile = $testPath . '/' . 'ChronoTrace_' . substr($trace->traceId, 0, 8) . '_Test.php';
+
+        // Créer le dossier si nécessaire
+        if (! is_dir($testPath)) {
+            mkdir($testPath, 0755, true);
+        }
+
+        $testContent = $this->buildPestTestContent($trace);
+
+        file_put_contents($testFile, $testContent);
+
+        $this->info("✅ Pest test generated: {$testFile}");
+        $this->line("Run with: ./vendor/bin/pest {$testFile}");
+    }
+
+    /**
+     * Construit le contenu du test Pest
+     */
+    private function buildPestTestContent(TraceData $trace): string
+    {
+        $requestMethod = strtoupper($trace->request->method);
+        $requestUrl = $trace->request->url;
+        $responseStatus = $trace->response->status;
+        $testName = "trace replay for {$requestMethod} {$requestUrl}";
+
+        $testContent = "<?php\n\n";
+        $testContent .= "/**\n";
+        $testContent .= " * Generated Pest test from ChronoTrace\n";
+        $testContent .= " * Trace ID: {$trace->traceId}\n";
+        $testContent .= ' * Generated at: ' . date('Y-m-d H:i:s') . "\n";
+        $testContent .= " */\n\n";
+        $testContent .= "use Illuminate\\Foundation\\Testing\\RefreshDatabase;\n\n";
+
+        // Test principal
+        $testContent .= "it('{$testName}', function () {\n";
+
+        // Setup des données si POST/PUT/PATCH
+        if (in_array($requestMethod, ['POST', 'PUT', 'PATCH']) && $trace->request->input !== []) {
+            $testContent .= '    $requestData = ' . var_export($trace->request->input, true) . ";\n\n";
+        }
+
+        // Requête HTTP
+        $testContent .= "    \$response = \$this->{$requestMethod}('{$requestUrl}'";
+
+        if (in_array($requestMethod, ['POST', 'PUT', 'PATCH']) && $trace->request->input !== []) {
+            $testContent .= ', $requestData';
+        }
+
+        // Headers
+        if ($trace->request->headers !== []) {
+            $testContent .= ', ' . var_export($trace->request->headers, true);
+        }
+
+        $testContent .= ");\n\n";
+
+        // Assertions de base
+        $testContent .= "    \$response->assertStatus({$responseStatus});\n";
+
+        // Assertions de structure de réponse
+        if ($trace->response->content !== '' && $trace->response->content !== '0') {
+            $responseData = json_decode($trace->response->content, true);
+
+            if (is_array($responseData)) {
+                $testContent .= '    $response->assertJsonStructure(' . var_export(array_keys($responseData), true) . ");\n";
+            }
+        }
+
+        // Assertions pour les headers de réponse importants
+        foreach ($trace->response->headers as $header => $value) {
+            if (in_array(strtolower((string) $header), ['content-type', 'location', 'cache-control'])) {
+                $valueStr = is_scalar($value) ? (string) $value : 'unknown';
+                $testContent .= "    \$response->assertHeader('{$header}', '{$valueStr}');\n";
+            }
+        }
+
+        // Assertions de base de données si on a des queries
+        if ($trace->database !== []) {
+            $testContent .= "\n    // Database assertions from captured queries\n";
+            $queryCount = count($trace->database);
+            $testContent .= "    \$this->assertDatabaseQueryCount({$queryCount});\n";
+        }
+
+        // Assertions de cache si on a des opérations
+        if ($trace->cache !== []) {
+            $testContent .= "\n    // Cache assertions from captured operations\n";
+            foreach ($trace->cache as $cacheOp) {
+                if (is_array($cacheOp) && isset($cacheOp['type']) && $cacheOp['type'] === 'hit' && isset($cacheOp['key'])) {
+                    $cacheKey = is_scalar($cacheOp['key']) ? (string) $cacheOp['key'] : 'unknown';
+                    $testContent .= "    \$this->assertTrue(Cache::has('{$cacheKey}'));\n";
+                }
+            }
+        }
+
+        $testContent .= "})->uses(RefreshDatabase::class);\n\n";
+
+        // Test de performance basé sur les métriques capturées
+        if ($trace->response->duration > 0) {
+            $maxDuration = $trace->response->duration * 2; // 2x la durée originale
+            $testContent .= "it('performs within acceptable time limits', function () {\n";
+            $testContent .= "    \$start = microtime(true);\n";
+            $testContent .= "    \$this->{$requestMethod}('{$requestUrl}');\n";
+            $testContent .= "    \$duration = microtime(true) - \$start;\n";
+            $testContent .= "    \$this->assertLessThan({$maxDuration}, \$duration, 'Request took too long');\n";
+            $testContent .= "});\n\n";
+        }
+
+        // Test spécifique pour les erreurs si status >= 400
+        if ($responseStatus >= 400) {
+            $testContent .= "it('handles error response correctly', function () {\n";
+            $testContent .= "    \$response = \$this->{$requestMethod}('{$requestUrl}');\n";
+            $testContent .= "    \$response->assertStatus({$responseStatus});\n";
+
+            if ($trace->response->content !== '' && $trace->response->content !== '0') {
+                $testContent .= "    \$response->assertJsonStructure(['message']); // Error responses should have message\n";
+            }
+
+            $testContent .= "});\n";
+        }
+
+        return $testContent;
     }
 }
