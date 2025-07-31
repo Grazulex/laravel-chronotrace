@@ -85,6 +85,12 @@
             "composer run-script phpstan",
             "composer run-script rector",
             "composer run-script test"
+        ],
+        "post-install-cmd": [
+            "@php -r \"if (file_exists('artisan')) { echo '\\n🚀 ChronoTrace installed! Run: php artisan chronotrace:install\\n'; }\""
+        ],
+        "post-update-cmd": [
+            "@php -r \"if (file_exists('artisan')) { echo '\\n🔄 ChronoTrace updated! Run: php artisan chronotrace:install --force\\n'; }\""
         ]
     },
     "config": {

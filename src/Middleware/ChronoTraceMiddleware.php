@@ -7,7 +7,6 @@ namespace Grazulex\LaravelChronotrace\Middleware;
 use Closure;
 use Grazulex\LaravelChronotrace\Services\TraceRecorder;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Throwable;
 

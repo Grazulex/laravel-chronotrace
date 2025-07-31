@@ -75,6 +75,7 @@ class TraceRecorder
             if (config('chronotrace.debug', false)) {
                 error_log("ChronoTrace: Trace {$traceId} not found in active traces");
             }
+
             return;
         }
 
@@ -285,6 +286,7 @@ class TraceRecorder
             if (config('chronotrace.debug', false)) {
                 error_log("ChronoTrace: Cannot store trace {$traceId} - invalid request data");
             }
+
             return;
         }
 
@@ -320,10 +322,8 @@ class TraceRecorder
                 }
                 Queue::connection($connection)
                     ->pushOn(config('chronotrace.queue_name', 'chronotrace'), new StoreTraceJob($traceData));
-            } else {
-                if (config('chronotrace.debug', false)) {
-                    error_log("ChronoTrace: Invalid queue connection configuration");
-                }
+            } elseif (config('chronotrace.debug', false)) {
+                error_log('ChronoTrace: Invalid queue connection configuration');
             }
         } else {
             // Stockage synchrone (dev/debug uniquement)

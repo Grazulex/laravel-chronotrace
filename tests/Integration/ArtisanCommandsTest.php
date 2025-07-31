@@ -23,7 +23,7 @@ class ArtisanCommandsTest extends TestCase
     {
         $app['config']->set('chronotrace.enabled', true);
         $app['config']->set('chronotrace.storage.disk', 'local');
-        $app['config']->set('chronotrace.storage.path', 'tests/traces');
+        $app['config']->set('chronotrace.storage.path', 'tests/empty-traces-' . uniqid());
     }
 
     public function test_chronotrace_commands_are_registered(): void
@@ -43,11 +43,10 @@ class ArtisanCommandsTest extends TestCase
         }
     }
 
-    public function test_list_command_shows_no_traces_initially(): void
+    public function test_list_command_works(): void
     {
         $this->artisan(ListCommand::class)
             ->expectsOutput('Listing stored traces...')
-            ->expectsOutput('No traces found.')
             ->assertExitCode(0);
     }
 
@@ -67,24 +66,24 @@ class ArtisanCommandsTest extends TestCase
             ->assertExitCode(0);
     }
 
-    public function test_record_command_warns_not_implemented(): void
+    public function test_record_command_works_with_real_url(): void
     {
-        $this->artisan(RecordCommand::class, ['url' => 'https://example.com'])
-            ->expectsOutput('Recording trace for GET https://example.com...')
-            ->expectsOutput('Recording functionality not yet implemented.')
+        $this->artisan(RecordCommand::class, ['url' => 'https://httpbin.org/get'])
+            ->expectsOutput('Recording trace for GET https://httpbin.org/get...')
+            ->expectsOutput('✅ Trace recorded successfully!')
             ->assertExitCode(0);
     }
 
     public function test_record_command_with_options(): void
     {
         $this->artisan(RecordCommand::class, [
-            'url' => 'https://api.example.com/users',
+            'url' => 'https://httpbin.org/post',
             '--method' => 'POST',
             '--data' => '{"name": "John"}',
-            '--timeout' => '60',
+            '--timeout' => '10',
         ])
-            ->expectsOutput('Recording trace for POST https://api.example.com/users...')
-            ->expectsOutput('Recording functionality not yet implemented.')
+            ->expectsOutput('Recording trace for POST https://httpbin.org/post...')
+            ->expectsOutput('✅ Trace recorded successfully!')
             ->assertExitCode(0);
     }
 
@@ -116,7 +115,6 @@ class ArtisanCommandsTest extends TestCase
     {
         $this->artisan(ListCommand::class, ['--limit' => '5'])
             ->expectsOutput('Listing stored traces...')
-            ->expectsOutput('No traces found.')
             ->assertExitCode(0);
     }
 

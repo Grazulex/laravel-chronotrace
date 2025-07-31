@@ -101,22 +101,22 @@ class TraceStorage
     public function list(): array
     {
         $traces = [];
-        
+
         // Lister tous les dossiers de dates dans traces/
         $tracesDir = 'traces';
-        if (!Storage::disk($this->disk)->exists($tracesDir)) {
+        if (! Storage::disk($this->disk)->exists($tracesDir)) {
             return [];
         }
-        
+
         $dateDirs = Storage::disk($this->disk)->directories($tracesDir);
-        
+
         foreach ($dateDirs as $dateDir) {
-            if (!is_string($dateDir)) {
+            if (! is_string($dateDir)) {
                 continue;
             }
-            
+
             $files = Storage::disk($this->disk)->files($dateDir);
-            
+
             foreach ($files as $file) {
                 if (str_ends_with($file, '.zip')) {
                     $traceId = basename($file, '.zip');
@@ -129,12 +129,14 @@ class TraceStorage
                 }
             }
         }
-        
+
         // Trier par date de création décroissante (plus récent en premier)
-        usort($traces, fn($a, $b) => $b['created_at'] <=> $a['created_at']);
+        usort($traces, fn ($a, $b): int => $b['created_at'] <=> $a['created_at']);
 
         return $traces;
-    }    /**
+    }
+
+    /**
      * Supprime une trace
      */
     public function delete(string $traceId): bool

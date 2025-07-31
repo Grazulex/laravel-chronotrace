@@ -2,6 +2,8 @@
 
 namespace Grazulex\LaravelChronotrace;
 
+use Exception;
+use Grazulex\LaravelChronotrace\Commands\InstallCommand;
 use Grazulex\LaravelChronotrace\Commands\ListCommand;
 use Grazulex\LaravelChronotrace\Commands\PurgeCommand;
 use Grazulex\LaravelChronotrace\Commands\RecordCommand;
@@ -66,6 +68,7 @@ class LaravelChronotraceServiceProvider extends ServiceProvider
             ], 'chronotrace-config');
 
             $this->commands([
+                InstallCommand::class,
                 RecordCommand::class,
                 ReplayCommand::class,
                 ListCommand::class,
@@ -75,8 +78,16 @@ class LaravelChronotraceServiceProvider extends ServiceProvider
 
         // Enregistrer le middleware si ChronoTrace est activé
         if (config('chronotrace.enabled', false)) {
-            $this->app->make('router')->pushMiddlewareToGroup('web', ChronoTraceMiddleware::class);
-            $this->app->make('router')->pushMiddlewareToGroup('api', ChronoTraceMiddleware::class);
+            // Laravel 11+ : Recommander l'enregistrement manuel dans bootstrap/app.php
+            // Mais essayer quand même l'ancienne méthode pour compatibilité
+            try {
+                $router = $this->app->make('router');
+                $router->pushMiddlewareToGroup('web', ChronoTraceMiddleware::class);
+                $router->pushMiddlewareToGroup('api', ChronoTraceMiddleware::class);
+            } catch (Exception) {
+                // Échec silencieux - l'utilisateur devra configurer manuellement
+                // dans bootstrap/app.php pour Laravel 11+
+            }
 
             // Enregistrer les event listeners
             $this->registerEventListeners();

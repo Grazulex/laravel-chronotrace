@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Grazulex\LaravelChronotrace\Tests\Unit;
 
-use Override;
 use Grazulex\LaravelChronotrace\Services\TraceRecorder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -12,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Config;
 use Orchestra\Testbench\TestCase;
+use Override;
 
 /**
  * Tests de compatibilité avec tous les types de réponses Laravel
