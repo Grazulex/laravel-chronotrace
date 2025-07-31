@@ -3,6 +3,7 @@
 namespace Grazulex\LaravelChronotrace;
 
 use Exception;
+use Grazulex\LaravelChronotrace\Commands\DiagnoseCommand;
 use Grazulex\LaravelChronotrace\Commands\InstallCommand;
 use Grazulex\LaravelChronotrace\Commands\ListCommand;
 use Grazulex\LaravelChronotrace\Commands\PurgeCommand;
@@ -80,6 +81,7 @@ class LaravelChronotraceServiceProvider extends ServiceProvider
                 ReplayCommand::class,
                 ListCommand::class,
                 PurgeCommand::class,
+                DiagnoseCommand::class,
             ]);
         }
 

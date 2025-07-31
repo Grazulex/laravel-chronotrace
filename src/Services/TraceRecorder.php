@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Grazulex\LaravelChronotrace\Services;
 
+use InvalidArgumentException;
 use Exception;
 use Grazulex\LaravelChronotrace\Jobs\StoreTraceJob;
 use Grazulex\LaravelChronotrace\Models\TraceContext;
@@ -315,15 +316,45 @@ class TraceRecorder
 
         // Stockage asynchrone via queue pour ne pas ralentir la réponse
         if ($asyncStorage) {
-            $connection = config('chronotrace.queue_connection', 'default');
-            if (is_string($connection)) {
-                if (config('chronotrace.debug', false)) {
-                    error_log("ChronoTrace: Queuing trace {$traceId} on connection {$connection}");
+            $connection = config('chronotrace.queue_connection');
+
+            // Auto-détection de la connexion queue si non spécifiée
+            if ($connection === null) {
+                $connection = $this->detectAvailableQueueConnection();
+            }
+
+            if (is_string($connection) && $connection !== '') {
+                try {
+                    // Vérifier que la connexion queue existe
+                    $queueManager = app('queue');
+                    $connectionConfig = config("queue.connections.{$connection}");
+
+                    if ($connectionConfig === null) {
+                        throw new InvalidArgumentException("Queue connection '{$connection}' is not configured");
+                    }
+
+                    if (config('chronotrace.debug', false)) {
+                        error_log("ChronoTrace: Queuing trace {$traceId} on connection {$connection}");
+                    }
+
+                    Queue::connection($connection)
+                        ->pushOn(config('chronotrace.queue_name', 'chronotrace'), new StoreTraceJob($traceData));
+                } catch (Exception $e) {
+                    if (config('chronotrace.debug', false)) {
+                        error_log("ChronoTrace: Queue error, falling back to sync storage: {$e->getMessage()}");
+                    }
+                    // Fallback vers stockage synchrone en cas d'erreur queue
+                    if (config('chronotrace.queue_fallback', true)) {
+                        $storage = $this->app->make(TraceStorage::class);
+                        $storage->store($traceData);
+                    }
                 }
-                Queue::connection($connection)
-                    ->pushOn(config('chronotrace.queue_name', 'chronotrace'), new StoreTraceJob($traceData));
             } elseif (config('chronotrace.debug', false)) {
-                error_log('ChronoTrace: Invalid queue connection configuration');
+                error_log('ChronoTrace: No valid queue connection found, using sync storage');
+                if (config('chronotrace.queue_fallback', true)) {
+                    $storage = $this->app->make(TraceStorage::class);
+                    $storage->store($traceData);
+                }
             }
         } else {
             // Stockage synchrone (dev/debug uniquement)
@@ -402,6 +433,59 @@ class TraceRecorder
         }
 
         return '';
+    }
+
+    /**
+     * Détecte automatiquement une connexion queue disponible
+     */
+    private function detectAvailableQueueConnection(): ?string
+    {
+        $queueConnections = config('queue.connections', []);
+        $defaultConnection = config('queue.default');
+
+        // Ordre de priorité pour la détection
+        $connectionPriority = [
+            $defaultConnection, // Connexion par défaut du système
+            'sync',             // Sync (toujours disponible)
+            'database',         // Database (souvent configurée)
+            'redis',            // Redis
+            'sqs',              // AWS SQS
+            'beanstalkd',       // Beanstalkd
+        ];
+
+        foreach ($connectionPriority as $connection) {
+            if (empty($connection)) {
+                continue;
+            }
+            if (! is_string($connection)) {
+                continue;
+            }
+            if (isset($queueConnections[$connection])) {
+                try {
+                    // Tester si la connexion est réellement utilisable
+                    $queueManager = app('queue');
+                    $queueConnection = $queueManager->connection($connection);
+
+                    if (config('chronotrace.debug', false)) {
+                        error_log("ChronoTrace: Auto-detected queue connection: {$connection}");
+                    }
+
+                    return $connection;
+                } catch (Exception $e) {
+                    if (config('chronotrace.debug', false)) {
+                        error_log("ChronoTrace: Queue connection {$connection} test failed: {$e->getMessage()}");
+                    }
+
+                    continue;
+                }
+            }
+        }
+
+        if (config('chronotrace.debug', false)) {
+            error_log('ChronoTrace: No usable queue connection found');
+        }
+
+        return null;
     }
 
     private function getGitBranch(): string

@@ -86,9 +86,10 @@ return [
     ],
 
     // Performance
-    'async_storage' => true, // Stockage asynchrone via queue
-    'queue_connection' => env('CHRONOTRACE_QUEUE_CONNECTION', 'default'),
+    'async_storage' => env('CHRONOTRACE_ASYNC_STORAGE', true), // Stockage asynchrone via queue
+    'queue_connection' => env('CHRONOTRACE_QUEUE_CONNECTION', null), // null = auto-detect
     'queue_name' => env('CHRONOTRACE_QUEUE', 'chronotrace'),
+    'queue_fallback' => env('CHRONOTRACE_QUEUE_FALLBACK', true), // Fallback vers sync si queue échoue
 
     // Debug et développement
     'debug' => env('CHRONOTRACE_DEBUG', false),
