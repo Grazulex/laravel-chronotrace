@@ -817,7 +817,7 @@ class ReplayCommand extends Command
         if ($trace->database !== []) {
             $testContent .= "\n    // Database assertions from captured queries\n";
             $queryCount = count($trace->database);
-            $testContent .= "    \$this->assertTrue(DB::getQueryLog() !== [], 'Database queries should be executed');\n";
+            $testContent .= "    expect(DB::getQueryLog())->not->toBeEmpty(); // Database queries should be executed\n";
             $testContent .= "    // Expected approximately {$queryCount} queries\n";
         }
 
@@ -829,13 +829,13 @@ class ReplayCommand extends Command
                     $cacheKey = is_scalar($cacheOp['key']) ? (string) $cacheOp['key'] : 'unknown';
                     if ($cacheKey !== 'unknown') {
                         $testContent .= "    // Cache key '{$cacheKey}' should exist if reproduced\n";
-                        $testContent .= "    // \$this->assertTrue(Cache::has('{$cacheKey}'));\n";
+                        $testContent .= "    // expect(Cache::has('{$cacheKey}'))->toBeTrue();\n";
                     }
                 }
             }
         }
 
-        $testContent .= "})->uses(RefreshDatabase::class);\n\n";
+        $testContent .= "})->uses(Tests\\TestCase::class, RefreshDatabase::class);\n\n";
 
         // Test de performance basé sur les métriques capturées
         if ($trace->response->duration > 0) {
@@ -844,8 +844,8 @@ class ReplayCommand extends Command
             $testContent .= "    \$start = microtime(true);\n";
             $testContent .= "    \$this->{$requestMethod}('{$urlPath}');\n";
             $testContent .= "    \$duration = microtime(true) - \$start;\n";
-            $testContent .= "    \$this->assertLessThan({$maxDuration}, \$duration, 'Request took too long');\n";
-            $testContent .= "});\n\n";
+            $testContent .= "    expect(\$duration)->toBeLessThan({$maxDuration}); // Request should not take too long\n";
+            $testContent .= "})->uses(Tests\\TestCase::class);\n\n";
         }
 
         // Test spécifique pour les erreurs si status >= 400
@@ -858,7 +858,7 @@ class ReplayCommand extends Command
                 $testContent .= "    \$response->assertJsonStructure(['message']); // Error responses should have message\n";
             }
 
-            $testContent .= "});\n";
+            $testContent .= "})->uses(Tests\\TestCase::class);\n";
         }
 
         return $testContent;

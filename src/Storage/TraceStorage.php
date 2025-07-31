@@ -102,38 +102,48 @@ class TraceStorage
     {
         $traces = [];
 
-        // Lister tous les dossiers de dates dans traces/
-        $tracesDir = 'traces';
-        if (! Storage::disk($this->disk)->exists($tracesDir)) {
-            return [];
-        }
-
-        $dateDirs = Storage::disk($this->disk)->directories($tracesDir);
-
-        foreach ($dateDirs as $dateDir) {
-            if (! is_string($dateDir)) {
-                continue;
+        try {
+            // Lister tous les dossiers de dates dans traces/
+            $tracesDir = 'traces';
+            if (! Storage::disk($this->disk)->exists($tracesDir)) {
+                return [];
             }
 
-            $files = Storage::disk($this->disk)->files($dateDir);
+            $dateDirs = Storage::disk($this->disk)->directories($tracesDir);
 
-            foreach ($files as $file) {
-                if (str_ends_with($file, '.zip')) {
-                    $traceId = basename($file, '.zip');
-                    $traces[] = [
-                        'trace_id' => $traceId,
-                        'path' => $file,
-                        'size' => Storage::disk($this->disk)->size($file),
-                        'created_at' => Storage::disk($this->disk)->lastModified($file),
-                    ];
+            foreach ($dateDirs as $dateDir) {
+                if (! is_string($dateDir)) {
+                    continue;
+                }
+
+                try {
+                    $files = Storage::disk($this->disk)->files($dateDir);
+
+                    foreach ($files as $file) {
+                        if (str_ends_with($file, '.zip')) {
+                            $traceId = basename($file, '.zip');
+                            $traces[] = [
+                                'trace_id' => $traceId,
+                                'path' => $file,
+                                'size' => Storage::disk($this->disk)->size($file),
+                                'created_at' => Storage::disk($this->disk)->lastModified($file),
+                            ];
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Ignorer les erreurs de dossiers individuels pour continuer le listing
+                    continue;
                 }
             }
+
+            // Trier par date de création décroissante (plus récent en premier)
+            usort($traces, fn ($a, $b): int => $b['created_at'] <=> $a['created_at']);
+
+            return $traces;
+        } catch (\Exception $e) {
+            // En cas d'erreur générale, retourner un tableau vide
+            return [];
         }
-
-        // Trier par date de création décroissante (plus récent en premier)
-        usort($traces, fn ($a, $b): int => $b['created_at'] <=> $a['created_at']);
-
-        return $traces;
     }
 
     /**
