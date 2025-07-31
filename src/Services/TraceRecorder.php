@@ -13,10 +13,10 @@ use Grazulex\LaravelChronotrace\Models\TraceResponse;
 use Grazulex\LaravelChronotrace\Storage\TraceStorage;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
