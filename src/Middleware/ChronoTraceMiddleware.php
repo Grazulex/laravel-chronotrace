@@ -93,7 +93,8 @@ class ChronoTraceMiddleware
         $mode = config('chronotrace.mode', 'record_on_error');
 
         if (config('chronotrace.debug', false)) {
-            error_log("ChronoTrace Middleware: shouldCapture() mode: {$mode}");
+            $modeString = is_string($mode) ? $mode : 'unknown';
+            error_log("ChronoTrace Middleware: shouldCapture() mode: {$modeString}");
         }
 
         $result = match ($mode) {

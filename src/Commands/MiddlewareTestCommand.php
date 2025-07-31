@@ -2,8 +2,10 @@
 
 namespace Grazulex\LaravelChronotrace\Commands;
 
+use Exception;
 use Grazulex\LaravelChronotrace\Middleware\ChronoTraceMiddleware;
 use Illuminate\Console\Command;
+use Illuminate\Http\Request;
 
 class MiddlewareTestCommand extends Command
 {
@@ -87,7 +89,7 @@ class MiddlewareTestCommand extends Command
             $this->line('     Please ensure it\'s added to bootstrap/app.php manually');
 
             return true; // On assume que c'est OK si on peut instancier
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->line("  ❌ Error instantiating middleware: {$e->getMessage()}");
 
             return false;
@@ -98,23 +100,21 @@ class MiddlewareTestCommand extends Command
     {
         try {
             // Simuler une requête simple
-            $request = \Illuminate\Http\Request::create('/test', 'GET');
+            $request = Request::create('/test', 'GET');
 
             $this->line('  📍 Simulating GET /test request...');
 
             // Vérifier que le middleware peut traiter la requête
             $middleware = app(ChronoTraceMiddleware::class);
 
-            $response = $middleware->handle($request, function ($req) {
-                return response('Test response', 200);
-            });
+            $response = $middleware->handle($request, fn ($req) => response('Test response', 200));
 
             if ($response->getStatusCode() === 200) {
                 $this->line('  ✅ Middleware processed request successfully');
             } else {
                 $this->line("  ❌ Unexpected response status: {$response->getStatusCode()}");
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->line("  ❌ Error in simulation: {$e->getMessage()}");
         }
     }

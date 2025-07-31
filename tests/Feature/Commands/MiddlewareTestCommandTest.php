@@ -2,14 +2,14 @@
 
 use Grazulex\LaravelChronotrace\Commands\MiddlewareTestCommand;
 
-describe('MiddlewareTestCommand', function () {
-    it('can execute middleware test command', function () {
+describe('MiddlewareTestCommand', function (): void {
+    it('can execute middleware test command', function (): void {
         $this->artisan(MiddlewareTestCommand::class)
             ->expectsOutput('🧪 Testing ChronoTrace Middleware Installation')
             ->assertExitCode(0);
     });
 
-    it('reports configuration status', function () {
+    it('reports configuration status', function (): void {
         config(['chronotrace.enabled' => true]);
         config(['chronotrace.mode' => 'always']);
         config(['chronotrace.debug' => true]);
@@ -22,13 +22,13 @@ describe('MiddlewareTestCommand', function () {
             ->assertExitCode(0);
     });
 
-    it('can instantiate middleware class', function () {
+    it('can instantiate middleware class', function (): void {
         $this->artisan(MiddlewareTestCommand::class)
             ->expectsOutputToContain('Middleware class can be instantiated')
             ->assertExitCode(0);
     });
 
-    it('provides recommendations when chronotrace is disabled', function () {
+    it('provides recommendations when chronotrace is disabled', function (): void {
         config(['chronotrace.enabled' => false]);
 
         $this->artisan(MiddlewareTestCommand::class)
@@ -36,7 +36,7 @@ describe('MiddlewareTestCommand', function () {
             ->assertExitCode(0);
     });
 
-    it('provides recommendations when debug is disabled', function () {
+    it('provides recommendations when debug is disabled', function (): void {
         config(['chronotrace.debug' => false]);
 
         $this->artisan(MiddlewareTestCommand::class)
@@ -44,7 +44,7 @@ describe('MiddlewareTestCommand', function () {
             ->assertExitCode(0);
     });
 
-    it('can simulate request processing', function () {
+    it('can simulate request processing', function (): void {
         config(['chronotrace.enabled' => true]);
 
         $this->artisan(MiddlewareTestCommand::class)

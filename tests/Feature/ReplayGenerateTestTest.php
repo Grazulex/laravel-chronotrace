@@ -62,7 +62,7 @@ it('can generate a pest test from trace', function (): void {
 
     // Vérifier le contenu généré
     $this->assertStringContainsString("it('trace replay for POST /api/users'", $testContent);
-    $this->assertStringContainsString('$this->POST(\'/api/users\'', $testContent);
+    $this->assertStringContainsString('$this->post(\'/api/users\'', $testContent);
     $this->assertStringContainsString('$response->assertStatus(201)', $testContent);
     $this->assertStringContainsString('Generated Pest test from ChronoTrace', $testContent);
     $this->assertStringContainsString('Trace ID: test-trace-12345', $testContent);
