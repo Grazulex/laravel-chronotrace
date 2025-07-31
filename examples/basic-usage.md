@@ -1,0 +1,339 @@
+# Basic Usage Examples
+
+This guide shows you how to get started with Laravel ChronoTrace through practical examples.
+
+## Installation and Setup
+
+### Step 1: Install the Package
+
+```bash
+composer require --dev grazulex/laravel-chronotrace
+```
+
+### Step 2: Publish Configuration
+
+```bash
+php artisan vendor:publish --tag=chronotrace-config
+```
+
+### Step 3: Basic Configuration
+
+Edit `config/chronotrace.php` or set environment variables:
+
+```env
+CHRONOTRACE_ENABLED=true
+CHRONOTRACE_MODE=record_on_error
+CHRONOTRACE_STORAGE=local
+```
+
+## Recording Your First Trace
+
+### Simple GET Request
+
+```bash
+# Record a simple API endpoint
+php artisan chronotrace:record /api/users
+```
+
+This captures all events that occur during the request:
+- Database queries
+- Cache operations  
+- HTTP requests to external services
+- Queue jobs dispatched
+
+### POST Request with Data
+
+```bash
+# Record user creation
+php artisan chronotrace:record /api/users \
+  --method=POST \
+  --data='{"name":"John Doe","email":"john@example.com"}'
+```
+
+### Complex Endpoint
+
+```bash
+# Record an e-commerce checkout process
+php artisan chronotrace:record /checkout/process \
+  --method=POST \
+  --data='{"cart_id": 123, "payment_method": "credit_card"}'
+```
+
+## Viewing Traces
+
+### List All Traces
+
+```bash
+php artisan chronotrace:list
+```
+
+Output:
+```
+┌─────────────┬─────────────┬─────────────────────┐
+│ Trace ID    │ Size        │ Created At          │
+├─────────────┼─────────────┼─────────────────────┤
+│ a1b2c3d4... │ 15,234 bytes│ 2024-01-15 14:30:22 │
+│ e5f6g7h8... │ 8,912 bytes │ 2024-01-15 13:45:18 │
+└─────────────┴─────────────┴─────────────────────┘
+```
+
+### List Recent Traces
+
+```bash
+# Show only the 5 most recent traces
+php artisan chronotrace:list --limit=5
+```
+
+## Replaying Traces
+
+### View All Events
+
+```bash
+# Replace with your actual trace ID
+php artisan chronotrace:replay a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+This shows comprehensive information:
+
+```
+=== TRACE INFORMATION ===
+🆔 Trace ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+🕒 Timestamp: 2024-01-15 14:30:22
+🌍 Environment: local
+🔗 Request URL: http://localhost:8000/api/users
+📊 Response Status: 200
+⏱️  Duration: 245ms
+💾 Memory Usage: 18.45 KB
+
+=== CAPTURED EVENTS ===
+📊 DATABASE EVENTS
+  🔍 [14:30:22.123] Query: SELECT * FROM users WHERE active = ? (15ms on mysql)
+  🔍 [14:30:22.145] Query: SELECT * FROM roles WHERE user_id IN (?, ?, ?) (8ms on mysql)
+
+🗄️  CACHE EVENTS
+  ❌ [14:30:22.120] Cache MISS: users:list (store: redis)
+  💾 [14:30:22.150] Cache WRITE: users:list (store: redis)
+
+🌐 HTTP EVENTS
+  📤 [14:30:22.200] HTTP Request: GET https://api.external.com/validation
+  📥 [14:30:22.230] HTTP Response: GET https://api.external.com/validation → 200
+
+📈 EVENTS SUMMARY
+  📊 Database events: 2
+  🗄️  Cache events: 2
+  🌐 HTTP events: 2
+  ⚙️  Job events: 0
+  📝 Total events: 6
+```
+
+### Filter Specific Event Types
+
+```bash
+# View only database queries
+php artisan chronotrace:replay a1b2c3d4 --db
+
+# View only cache operations
+php artisan chronotrace:replay a1b2c3d4 --cache
+
+# View only HTTP requests
+php artisan chronotrace:replay a1b2c3d4 --http
+
+# View only queue jobs
+php artisan chronotrace:replay a1b2c3d4 --jobs
+```
+
+### Combine Multiple Filters
+
+```bash
+# View database and cache events only
+php artisan chronotrace:replay a1b2c3d4 --db --cache
+```
+
+## Practical Examples
+
+### Example 1: Debugging Slow API Response
+
+```bash
+# 1. Record the slow endpoint
+php artisan chronotrace:record /api/dashboard/stats
+
+# 2. Get the trace ID
+php artisan chronotrace:list --limit=1
+
+# 3. Analyze database queries for N+1 problems
+php artisan chronotrace:replay {trace-id} --db
+```
+
+Look for:
+- Repeated similar queries
+- Long execution times
+- Too many queries for simple operations
+
+### Example 2: Monitoring External API Calls
+
+```bash
+# 1. Record an endpoint that calls external services
+php artisan chronotrace:record /api/weather/forecast
+
+# 2. View HTTP events to see external dependencies
+php artisan chronotrace:replay {trace-id} --http
+```
+
+This helps you:
+- Track external API response times
+- Monitor API failures
+- Understand service dependencies
+
+### Example 3: Cache Performance Analysis
+
+```bash
+# 1. Record a data-heavy endpoint
+php artisan chronotrace:record /api/products/search?q=laptop
+
+# 2. Analyze cache effectiveness
+php artisan chronotrace:replay {trace-id} --cache
+```
+
+Look for:
+- Cache miss ratios
+- Opportunities for additional caching
+- Cache key patterns
+
+### Example 4: Queue Job Monitoring
+
+```bash
+# 1. Record an endpoint that dispatches jobs
+php artisan chronotrace:record /orders/confirmation \
+  --method=POST \
+  --data='{"order_id": 12345}'
+
+# 2. View queue job processing
+php artisan chronotrace:replay {trace-id} --jobs
+```
+
+This shows:
+- Which jobs were dispatched
+- Job processing status
+- Job failures and retries
+
+## Common Workflows
+
+### Daily Development Workflow
+
+```bash
+# Morning: Check what's been recorded overnight
+php artisan chronotrace:list --limit=10
+
+# During development: Record new features
+php artisan chronotrace:record /api/new-feature
+
+# Debug issues: Replay problematic traces
+php artisan chronotrace:replay {trace-id} --db
+
+# End of day: Clean up old traces
+php artisan chronotrace:purge --days=7
+```
+
+### Bug Investigation Workflow
+
+```bash
+# 1. Reproduce the bug
+php artisan chronotrace:record /problematic-endpoint \
+  --method=POST \
+  --data='{"reproduce": "bug"}'
+
+# 2. Identify the trace
+php artisan chronotrace:list --limit=5
+
+# 3. Analyze step by step
+php artisan chronotrace:replay {trace-id}           # Overview
+php artisan chronotrace:replay {trace-id} --db      # Database issues
+php artisan chronotrace:replay {trace-id} --http    # External services
+php artisan chronotrace:replay {trace-id} --cache   # Cache problems
+
+# 4. Focus on specific areas based on findings
+```
+
+### Performance Optimization Workflow
+
+```bash
+# 1. Record baseline performance
+php artisan chronotrace:record /performance-critical-endpoint
+
+# 2. Note the trace ID and performance metrics
+php artisan chronotrace:replay {trace-id}
+
+# 3. Make optimizations (add caching, optimize queries, etc.)
+
+# 4. Record again and compare
+php artisan chronotrace:record /performance-critical-endpoint
+
+# 5. Compare the two traces
+php artisan chronotrace:replay {old-trace-id} --db
+php artisan chronotrace:replay {new-trace-id} --db
+```
+
+## Maintenance
+
+### Regular Cleanup
+
+```bash
+# Clean up traces older than 7 days
+php artisan chronotrace:purge --days=7
+
+# Force cleanup without confirmation
+php artisan chronotrace:purge --days=7 --confirm
+```
+
+### Check Storage Usage
+
+```bash
+# Check how much space traces are using
+du -sh storage/chronotrace/
+
+# List trace file sizes
+php artisan chronotrace:list --limit=50
+```
+
+## Next Steps
+
+Once you're comfortable with basic usage:
+
+- [Configure different recording modes](configuration-examples.md)
+- [Set up production monitoring](production-monitoring.md)
+- [Learn about custom storage options](custom-storage.md)
+- [Explore advanced event filtering](event-filtering.md)
+
+## Troubleshooting
+
+### No Traces Recorded
+
+Check your configuration:
+
+```bash
+# Verify ChronoTrace is enabled
+php artisan config:show chronotrace.enabled
+
+# Check recording mode
+php artisan config:show chronotrace.mode
+```
+
+### Permission Errors
+
+```bash
+# Fix storage permissions
+chmod -R 755 storage/chronotrace/
+chown -R www-data:www-data storage/chronotrace/
+```
+
+### Empty Trace Replays
+
+This usually means no events were captured. Check:
+
+- Are the event listeners enabled in config?
+- Is the request actually executing the code you expect?
+- Are there any errors in the Laravel logs?
+
+---
+
+**Next:** [Configuration Examples](configuration-examples.md)
