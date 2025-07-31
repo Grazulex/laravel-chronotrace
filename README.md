@@ -59,7 +59,7 @@ composer require --dev grazulex/laravel-chronotrace
 
 ```bash
 composer require --dev grazulex/laravel-chronotrace
-php artisan vendor:publish --tag=chronotrace-config
+php artisan chronotrace:install
 ```
 
 ### 2️⃣ Configure Recording Mode
@@ -82,6 +82,11 @@ php artisan chronotrace:record /api/users
 php artisan chronotrace:record /api/users \
   --method=POST \
   --data='{"name":"John","email":"john@example.com"}'
+
+# Record with custom headers
+php artisan chronotrace:record /api/protected \
+  --method=GET \
+  --headers='{"Authorization":"Bearer token123"}'
 ```
 
 ### 4️⃣ View Your Traces
@@ -90,11 +95,14 @@ php artisan chronotrace:record /api/users \
 # List all traces
 php artisan chronotrace:list
 
+# List with full trace IDs
+php artisan chronotrace:list --full-id
+
 # Replay a specific trace (use ID from list command)
 php artisan chronotrace:replay abc12345-def6-7890-abcd-ef1234567890
 ```
 
-### 5️⃣ Filter Events
+### 5️⃣ Filter Events and Generate Tests
 
 ```bash
 # View only database queries
@@ -105,6 +113,9 @@ php artisan chronotrace:replay {trace-id} --cache
 
 # View only HTTP requests
 php artisan chronotrace:replay {trace-id} --http
+
+# Generate Pest tests from traces
+php artisan chronotrace:replay {trace-id} --generate-test
 ```
 
 ---
@@ -155,21 +166,33 @@ Each trace includes comprehensive information:
 
 ## 🔧 Available Commands
 
+- **`chronotrace:install`** – Install and configure ChronoTrace middleware
 - **`chronotrace:record`** – Record a trace for a specific URL  
 - **`chronotrace:list`** – List stored traces with metadata  
 - **`chronotrace:replay`** – Replay and analyze a captured trace  
 - **`chronotrace:purge`** – Remove old traces based on retention policy
+- **`chronotrace:diagnose`** – Diagnose configuration and potential issues
+- **`chronotrace:test-middleware`** – Test middleware installation and activation
 
 ### Command Examples
 
 ```bash
+# Installation and setup
+chronotrace:install --force
+
 # Record traces
 chronotrace:record /api/users --method=GET
 chronotrace:record /checkout --method=POST --data='{"cart_id": 123}'
+chronotrace:record /api/protected --headers='{"Authorization":"Bearer token"}'
 
 # List and analyze
-chronotrace:list --limit=10
+chronotrace:list --limit=10 --full-id
 chronotrace:replay {trace-id} --db --cache
+chronotrace:replay {trace-id} --generate-test --test-path=tests/Integration
+
+# Diagnostics and testing
+chronotrace:diagnose
+chronotrace:test-middleware
 
 # Maintenance
 chronotrace:purge --days=7 --confirm
@@ -182,6 +205,7 @@ chronotrace:purge --days=7 --confirm
 - **Bug Reproduction** – No more “can’t reproduce locally” issues  
 - **Test Generation** – Build realistic tests from production data  
 - **Performance Audits** – Find slow queries, N+1s and cache misses  
+- **Configuration Validation** – Diagnose setup issues with built-in tools
 - **Onboarding** – Help new devs understand complex flows via execution graphs  
 
 ---

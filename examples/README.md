@@ -18,7 +18,7 @@ Here's a simple example to get you started:
 ```bash
 # 1. Install and configure
 composer require --dev grazulex/laravel-chronotrace
-php artisan vendor:publish --tag=chronotrace-config
+php artisan chronotrace:install
 
 # 2. Record a trace
 php artisan chronotrace:record /api/users
@@ -28,6 +28,9 @@ php artisan chronotrace:list
 
 # 4. Replay the trace
 php artisan chronotrace:replay {your-trace-id}
+
+# 5. Generate tests from traces
+php artisan chronotrace:replay {your-trace-id} --generate-test
 ```
 
 ## 📊 Common Use Cases
@@ -35,14 +38,23 @@ php artisan chronotrace:replay {your-trace-id}
 ### 🐛 Debugging Production Issues
 
 ```bash
-# Record problematic endpoint
-php artisan chronotrace:record /checkout/process --method=POST --data='{"cart_id": 123}'
+# First, validate your setup
+php artisan chronotrace:diagnose
+
+# Record problematic endpoint with authentication
+php artisan chronotrace:record /checkout/process \
+  --method=POST \
+  --data='{"cart_id": 123}' \
+  --headers='{"Authorization":"Bearer prod-token"}'
 
 # Analyze database queries
 php artisan chronotrace:replay {trace-id} --db
 
 # Check external API calls
 php artisan chronotrace:replay {trace-id} --http
+
+# Generate a test to prevent regressions
+php artisan chronotrace:replay {trace-id} --generate-test --test-path=tests/Regression
 ```
 
 ### 🚀 Performance Analysis
@@ -63,10 +75,16 @@ php artisan chronotrace:replay {trace-id} --db
 ```bash
 # Record API calls with different methods
 php artisan chronotrace:record /api/v1/orders --method=GET
-php artisan chronotrace:record /api/v1/orders --method=POST --data='{"product_id": 1, "quantity": 2}'
+php artisan chronotrace:record /api/v1/orders \
+  --method=POST \
+  --data='{"product_id": 1, "quantity": 2}' \
+  --headers='{"Content-Type":"application/json"}'
 
 # Analyze external dependencies
 php artisan chronotrace:replay {trace-id} --http
+
+# Generate comprehensive test suite
+php artisan chronotrace:replay {trace-id} --generate-test --test-path=tests/Api
 ```
 
 ## 🛠️ Configuration Examples
@@ -113,6 +131,22 @@ return [
 
 ## 🔧 Advanced Examples
 
+### 🛠️ Initial Setup and Validation
+
+```bash
+# Install with automatic configuration
+php artisan chronotrace:install
+
+# Force reconfigure if needed
+php artisan chronotrace:install --force
+
+# Validate installation
+php artisan chronotrace:diagnose
+
+# Test middleware setup
+php artisan chronotrace:test-middleware
+```
+
 ### Custom Event Filtering
 
 ```bash
@@ -129,6 +163,25 @@ php artisan chronotrace:replay {trace-id} --cache
 php artisan chronotrace:replay {trace-id} --http
 ```
 
+### Test Generation from Traces
+
+```bash
+# Record a complex workflow
+php artisan chronotrace:record /orders/complete
+
+# Generate a basic Pest test
+php artisan chronotrace:replay {trace-id} --generate-test
+
+# Generate test in specific directory
+php artisan chronotrace:replay {trace-id} --generate-test --test-path=tests/Integration
+
+# Review generated test
+cat tests/Generated/ChronoTrace_abc12345_Test.php
+
+# Run the generated test
+./vendor/bin/pest tests/Generated/ChronoTrace_abc12345_Test.php
+```
+
 ### Automated Monitoring
 
 Create a script for automated trace analysis:
@@ -137,12 +190,20 @@ Create a script for automated trace analysis:
 #!/bin/bash
 # scripts/analyze-traces.sh
 
+echo "Validating ChronoTrace setup..."
+php artisan chronotrace:diagnose
+
 echo "Recording critical endpoints..."
 php artisan chronotrace:record /api/checkout --method=POST --data='{"test": true}'
 php artisan chronotrace:record /api/payment/process --method=POST --data='{"amount": 100}'
 
 echo "Listing recent traces..."
-php artisan chronotrace:list --limit=5
+php artisan chronotrace:list --limit=5 --full-id
+
+echo "Generating tests for monitoring..."
+# Extract trace IDs and generate tests
+TRACES=$(php artisan chronotrace:list --limit=5 --full-id | grep "│" | head -2)
+# Process each trace ID...
 
 echo "Cleaning up old traces..."
 php artisan chronotrace:purge --days=7 --confirm

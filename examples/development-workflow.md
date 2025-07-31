@@ -25,6 +25,18 @@ CHRONOTRACE_CAPTURE_EVENTS=true
 CHRONOTRACE_ASYNC_STORAGE=false
 ```
 
+### Installation and Setup
+
+```bash
+# Install and configure ChronoTrace
+composer require --dev grazulex/laravel-chronotrace
+php artisan chronotrace:install
+
+# Verify installation
+php artisan chronotrace:diagnose
+php artisan chronotrace:test-middleware
+```
+
 ### Development-Specific Configuration
 
 ```php
@@ -53,16 +65,17 @@ if (app()->environment('local')) {
 
 **1. Reproduce the Bug:**
 ```bash
-# Start with manual recording
+# Start with manual recording, include headers if authentication needed
 php artisan chronotrace:record /problematic-endpoint \
   --method=POST \
-  --data='{"reproduce": "the-bug"}'
+  --data='{"reproduce": "the-bug"}' \
+  --headers='{"Authorization":"Bearer test-token"}'
 ```
 
 **2. Get the Trace ID:**
 ```bash
-# List recent traces
-php artisan chronotrace:list --limit=5
+# List recent traces with full IDs for easy copying
+php artisan chronotrace:list --limit=5 --full-id
 ```
 
 **3. Analyze the Issue:**
@@ -76,7 +89,13 @@ php artisan chronotrace:replay {trace-id} --http  # External services
 php artisan chronotrace:replay {trace-id} --jobs  # Background processing
 ```
 
-**4. Document Findings:**
+**4. Generate Regression Test:**
+```bash
+# Create test to prevent future regressions
+php artisan chronotrace:replay {trace-id} --generate-test --test-path=tests/Bugs
+```
+
+**5. Document Findings:**
 ```bash
 # Save trace for reference
 php artisan chronotrace:replay {trace-id} > bug-analysis-$(date +%Y%m%d).txt
@@ -88,7 +107,7 @@ php artisan chronotrace:replay {trace-id} > bug-analysis-$(date +%Y%m%d).txt
 ```bash
 # Record before making changes
 php artisan chronotrace:record /new-feature-endpoint
-BASELINE_TRACE=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
+BASELINE_TRACE=$(php artisan chronotrace:list --limit=1 --full-id | tail -1 | awk '{print $2}')
 ```
 
 **2. Develop Feature:**
@@ -102,7 +121,7 @@ git commit -m "Implement new feature"
 ```bash
 # Record after changes
 php artisan chronotrace:record /new-feature-endpoint
-NEW_TRACE=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
+NEW_TRACE=$(php artisan chronotrace:list --limit=1 --full-id | tail -1 | awk '{print $2}')
 
 # Compare performance
 echo "Before:"
@@ -110,6 +129,15 @@ php artisan chronotrace:replay $BASELINE_TRACE | grep "Duration:\|Memory:"
 
 echo "After:"
 php artisan chronotrace:replay $NEW_TRACE | grep "Duration:\|Memory:"
+```
+
+**4. Generate Tests:**
+```bash
+# Create test from the new implementation
+php artisan chronotrace:replay $NEW_TRACE --generate-test --test-path=tests/Feature
+
+# Run the generated test
+./vendor/bin/pest tests/Feature/ChronoTrace_${NEW_TRACE:0:8}_Test.php
 ```
 
 **4. Query Analysis:**
@@ -491,13 +519,21 @@ done
 
 echo "Running ChronoTrace performance check..."
 
+# Validate ChronoTrace setup first
+php artisan chronotrace:diagnose > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "❌ ChronoTrace configuration issues detected"
+    echo "   Run: php artisan chronotrace:diagnose"
+    exit 1
+fi
+
 # Test critical endpoints
 CRITICAL_ENDPOINTS=("/api/users" "/api/orders")
 
 for endpoint in "${CRITICAL_ENDPOINTS[@]}"; do
     php artisan chronotrace:record "$endpoint" > /dev/null 2>&1
     
-    TRACE_ID=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
+    TRACE_ID=$(php artisan chronotrace:list --limit=1 --full-id | tail -1 | awk '{print $2}')
     DURATION=$(php artisan chronotrace:replay "$TRACE_ID" | grep "Duration:" | awk '{print $3}' | sed 's/ms//')
     QUERIES=$(php artisan chronotrace:replay "$TRACE_ID" --db | grep -c "Query:")
     
