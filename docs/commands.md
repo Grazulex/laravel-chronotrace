@@ -188,6 +188,12 @@ php artisan chronotrace:replay {trace-id} [options]
 - **`--format=table`** - Output format (table, json, raw)
 - **`--generate-test`** - Generate a Pest test file from the trace
 - **`--test-path=tests/Generated`** - Path for generated test files (default: tests/Generated)
+- **`--detailed`** - Show detailed information including context, headers, and response content
+- **`--context`** - Show Laravel context (versions, config, env vars)
+- **`--headers`** - Show request and response headers
+- **`--content`** - Show response content
+- **`--bindings`** - Show SQL query bindings
+- **`--compact`** - Show minimal information only
 
 ### Examples
 
@@ -201,8 +207,29 @@ php artisan chronotrace:replay abc12345 --db
 # Show only cache and HTTP events
 php artisan chronotrace:replay abc12345 --cache --http
 
+# Show detailed output with context and headers
+php artisan chronotrace:replay abc12345 --detailed
+
+# Show SQL query bindings for debugging
+php artisan chronotrace:replay abc12345 --db --bindings
+
+# Show Laravel context information
+php artisan chronotrace:replay abc12345 --context
+
+# Show request/response headers
+php artisan chronotrace:replay abc12345 --headers
+
+# Show response content
+php artisan chronotrace:replay abc12345 --content
+
+# Compact output (minimal information)
+php artisan chronotrace:replay abc12345 --compact
+
 # Output as JSON
 php artisan chronotrace:replay abc12345 --format=json
+
+# Output as raw data
+php artisan chronotrace:replay abc12345 --format=raw
 
 # Generate Pest test from trace
 php artisan chronotrace:replay abc12345 --generate-test

@@ -13,12 +13,18 @@ composer require --dev grazulex/laravel-chronotrace
 ### Step 2: Install and Configure
 
 ```bash
-# Automatic installation with middleware setup
+# Automatic installation with middleware setup (recommended)
 php artisan chronotrace:install
 
 # Force reinstall if needed
 php artisan chronotrace:install --force
 ```
+
+**What this does:**
+- Publishes configuration file to `config/chronotrace.php`
+- Detects Laravel version and configures middleware appropriately
+- For Laravel 12.x: Automatically adds middleware to `bootstrap/app.php`
+- Creates storage directory with proper permissions
 
 ### Step 3: Verify Installation
 
@@ -35,10 +41,27 @@ php artisan chronotrace:test-middleware
 Edit `config/chronotrace.php` or set environment variables:
 
 ```env
+# Basic settings
 CHRONOTRACE_ENABLED=true
 CHRONOTRACE_MODE=record_on_error
 CHRONOTRACE_STORAGE=local
+
+# Performance settings
+CHRONOTRACE_ASYNC_STORAGE=true
+CHRONOTRACE_QUEUE_CONNECTION=database
+
+# Event capture settings
+CHRONOTRACE_CAPTURE_DATABASE=true
+CHRONOTRACE_CAPTURE_CACHE=true
+CHRONOTRACE_CAPTURE_HTTP=true
+CHRONOTRACE_CAPTURE_JOBS=true
 ```
+
+**Recording Modes:**
+- `always` - Record every request (development)
+- `sample` - Record percentage of requests (staging) 
+- `record_on_error` - Only record on errors (production)
+- `targeted` - Record specific routes/jobs only
 
 ## Recording Your First Trace
 
@@ -156,20 +179,32 @@ This shows comprehensive information:
   📝 Total events: 6
 ```
 
-### Filter Specific Event Types
+### Advanced Filtering Options
 
 ```bash
-# View only database queries
-php artisan chronotrace:replay a1b2c3d4 --db
+# View detailed information with context, headers, and content
+php artisan chronotrace:replay a1b2c3d4 --detailed
 
-# View only cache operations
-php artisan chronotrace:replay a1b2c3d4 --cache
+# Show SQL query bindings for debugging
+php artisan chronotrace:replay a1b2c3d4 --db --bindings
 
-# View only HTTP requests
-php artisan chronotrace:replay a1b2c3d4 --http
+# Show Laravel context (versions, config, environment)
+php artisan chronotrace:replay a1b2c3d4 --context
 
-# View only queue jobs
-php artisan chronotrace:replay a1b2c3d4 --jobs
+# Show request and response headers
+php artisan chronotrace:replay a1b2c3d4 --headers
+
+# Show response content
+php artisan chronotrace:replay a1b2c3d4 --content
+
+# Compact output (minimal information)
+php artisan chronotrace:replay a1b2c3d4 --compact
+
+# Output as JSON for programmatic processing
+php artisan chronotrace:replay a1b2c3d4 --format=json
+
+# Output as raw data
+php artisan chronotrace:replay a1b2c3d4 --format=raw
 ```
 
 ### Combine Multiple Filters

@@ -1,13 +1,21 @@
-# Development Workflow Examples
+# Development Workflow with Laravel ChronoTrace
 
-This guide shows how to integrate ChronoTrace into your daily development workflow for debugging, testing, and performance optimization.
+This guide shows how to integrate Laravel ChronoTrace into your development workflow for debugging, testing, and quality assurance.
 
 ## Development Environment Setup
 
-### Local Development Configuration
+### Initial Configuration
+
+```bash
+# Install ChronoTrace in development
+composer require --dev grazulex/laravel-chronotrace
+php artisan chronotrace:install
+```
+
+### Development-Specific Configuration
 
 ```env
-# .env.local
+# Development .env settings
 CHRONOTRACE_ENABLED=true
 CHRONOTRACE_MODE=always
 CHRONOTRACE_STORAGE=local
@@ -21,652 +29,573 @@ CHRONOTRACE_CAPTURE_HTTP=true
 CHRONOTRACE_CAPTURE_JOBS=true
 CHRONOTRACE_CAPTURE_EVENTS=true
 
-# Synchronous storage for immediate access
+# Use synchronous storage for immediate feedback
 CHRONOTRACE_ASYNC_STORAGE=false
 ```
 
-### Installation and Setup
+## Feature Development Workflow
+
+### 1. Before Starting Development
 
 ```bash
-# Install and configure ChronoTrace
-composer require --dev grazulex/laravel-chronotrace
-php artisan chronotrace:install
-
-# Verify installation
+# Validate your ChronoTrace setup
 php artisan chronotrace:diagnose
+
+# Clean up old traces
+php artisan chronotrace:purge --days=1 --confirm
+
+# Test middleware
 php artisan chronotrace:test-middleware
 ```
 
-### Development-Specific Configuration
+### 2. During Feature Development
 
-```php
-// config/chronotrace.php - Development overrides
-if (app()->environment('local')) {
-    return array_merge($config, [
-        'mode' => 'always',
-        'debug' => true,
-        'retention_days' => 3,
-        'capture' => [
-            'database' => true,
-            'cache' => true,
-            'http' => true,
-            'jobs' => true,
-            'events' => true,
-        ],
-        'compression' => ['enabled' => false], // Faster writes
-        'async_storage' => false,              // Immediate availability
-    ]);
-}
+#### Record Baseline Traces
+
+```bash
+# Record current behavior before changes
+php artisan chronotrace:record /api/feature-endpoint \
+  --method=GET \
+  --headers='{"Authorization":"Bearer dev-token"}'
+
+# Note the trace ID for later comparison
+php artisan chronotrace:list --limit=1 --full-id
 ```
 
-## Daily Development Workflows
+#### Test API Endpoints
 
-### Bug Investigation Workflow
-
-**1. Reproduce the Bug:**
 ```bash
-# Start with manual recording, include headers if authentication needed
-php artisan chronotrace:record /problematic-endpoint \
+# Test GET requests
+php artisan chronotrace:record /api/users
+php artisan chronotrace:record /api/users/123
+
+# Test POST requests with data
+php artisan chronotrace:record /api/users \
   --method=POST \
-  --data='{"reproduce": "the-bug"}' \
+  --data='{"name":"Test User","email":"test@example.com"}'
+
+# Test PUT/PATCH requests
+php artisan chronotrace:record /api/users/123 \
+  --method=PUT \
+  --data='{"name":"Updated Name"}'
+
+# Test DELETE requests
+php artisan chronotrace:record /api/users/123 \
+  --method=DELETE
+```
+
+#### Debug Complex Workflows
+
+```bash
+# Record a complex business process
+php artisan chronotrace:record /orders/checkout \
+  --method=POST \
+  --data='{
+    "items": [{"id": 1, "quantity": 2}],
+    "payment": {"method": "credit_card"},
+    "shipping": {"address": "123 Main St"}
+  }' \
   --headers='{"Authorization":"Bearer test-token"}'
+
+# Analyze the full workflow
+TRACE_ID=$(php artisan chronotrace:list --limit=1 --full-id | grep "│" | head -1 | awk '{print $2}')
+php artisan chronotrace:replay $TRACE_ID --detailed
 ```
 
-**2. Get the Trace ID:**
-```bash
-# List recent traces with full IDs for easy copying
-php artisan chronotrace:list --limit=5 --full-id
-```
+### 3. Analyzing Development Traces
 
-**3. Analyze the Issue:**
-```bash
-# Get overview
-php artisan chronotrace:replay {trace-id}
+#### Database Performance Analysis
 
-# Focus on specific areas
-php artisan chronotrace:replay {trace-id} --db    # Database issues
-php artisan chronotrace:replay {trace-id} --http  # External services
-php artisan chronotrace:replay {trace-id} --jobs  # Background processing
-```
-
-**4. Generate Regression Test:**
-```bash
-# Create test to prevent future regressions
-php artisan chronotrace:replay {trace-id} --generate-test --test-path=tests/Bugs
-```
-
-**5. Document Findings:**
-```bash
-# Save trace for reference
-php artisan chronotrace:replay {trace-id} > bug-analysis-$(date +%Y%m%d).txt
-```
-
-### Feature Development Workflow
-
-**1. Baseline Recording:**
-```bash
-# Record before making changes
-php artisan chronotrace:record /new-feature-endpoint
-BASELINE_TRACE=$(php artisan chronotrace:list --limit=1 --full-id | tail -1 | awk '{print $2}')
-```
-
-**2. Develop Feature:**
-```bash
-# Make your code changes
-git add .
-git commit -m "Implement new feature"
-```
-
-**3. Performance Comparison:**
-```bash
-# Record after changes
-php artisan chronotrace:record /new-feature-endpoint
-NEW_TRACE=$(php artisan chronotrace:list --limit=1 --full-id | tail -1 | awk '{print $2}')
-
-# Compare performance
-echo "Before:"
-php artisan chronotrace:replay $BASELINE_TRACE | grep "Duration:\|Memory:"
-
-echo "After:"
-php artisan chronotrace:replay $NEW_TRACE | grep "Duration:\|Memory:"
-```
-
-**4. Generate Tests:**
-```bash
-# Create test from the new implementation
-php artisan chronotrace:replay $NEW_TRACE --generate-test --test-path=tests/Feature
-
-# Run the generated test
-./vendor/bin/pest tests/Feature/ChronoTrace_${NEW_TRACE:0:8}_Test.php
-```
-
-**4. Query Analysis:**
 ```bash
 # Check for N+1 queries
-php artisan chronotrace:replay $NEW_TRACE --db | grep -c "Query:"
-php artisan chronotrace:replay $BASELINE_TRACE --db | grep -c "Query:"
-```
+php artisan chronotrace:replay {trace-id} --db
 
-### Code Review Preparation
-
-**Create Performance Report:**
-```bash
-#!/bin/bash
-# scripts/pre-review-check.sh
-
-echo "=== Pre-Review Performance Check ==="
-
-# Record key endpoints
-ENDPOINTS=("/api/users" "/api/products" "/dashboard")
-
-for endpoint in "${ENDPOINTS[@]}"; do
-    echo "Testing $endpoint..."
-    php artisan chronotrace:record "$endpoint"
-    
-    TRACE_ID=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
-    
-    echo "Trace ID: $TRACE_ID"
-    echo "Queries: $(php artisan chronotrace:replay $TRACE_ID --db | grep -c 'Query:')"
-    echo "Duration: $(php artisan chronotrace:replay $TRACE_ID | grep 'Duration:' | awk '{print $3}')"
-    echo "---"
-done
-```
-
-## Testing Integration
-
-### Unit Test with ChronoTrace
-
-```php
-<?php
-// tests/Feature/UserApiTest.php
-
-use Grazulex\LaravelChronotrace\Services\TraceRecorder;
-
-class UserApiTest extends TestCase
-{
-    public function test_user_list_performance()
-    {
-        $recorder = app(TraceRecorder::class);
-        
-        // Start recording
-        $recorder->startRecording();
-        
-        // Make request
-        $response = $this->getJson('/api/users');
-        
-        // Stop recording and get trace
-        $traceId = $recorder->stopRecording();
-        $trace = app(TraceStorage::class)->retrieve($traceId);
-        
-        // Assertions
-        $response->assertStatus(200);
-        $this->assertLessThan(1000, $trace->response->duration); // < 1 second
-        $this->assertLessThan(10, count($trace->database));      // < 10 queries
-    }
-    
-    public function test_no_n_plus_one_in_user_posts()
-    {
-        $recorder = app(TraceRecorder::class);
-        
-        // Create test data
-        $users = User::factory(5)->create();
-        foreach ($users as $user) {
-            Post::factory(3)->create(['user_id' => $user->id]);
-        }
-        
-        $recorder->startRecording();
-        $response = $this->getJson('/api/users-with-posts');
-        $traceId = $recorder->stopRecording();
-        
-        $trace = app(TraceStorage::class)->retrieve($traceId);
-        
-        // Should only have 2 queries: users + posts (with eager loading)
-        $queryCount = count($trace->database);
-        $this->assertLessThanOrEqual(2, $queryCount, 
-            "Expected ≤2 queries, got {$queryCount}. Possible N+1 problem.");
-    }
-}
-```
-
-### Integration Test Helper
-
-```php
-<?php
-// tests/Helpers/ChronoTraceTestTrait.php
-
-trait ChronoTraceTestTrait
-{
-    protected function recordRequest(string $method, string $uri, array $data = []): string
-    {
-        $recorder = app(TraceRecorder::class);
-        
-        $recorder->startRecording();
-        
-        switch (strtolower($method)) {
-            case 'get':
-                $this->getJson($uri);
-                break;
-            case 'post':
-                $this->postJson($uri, $data);
-                break;
-            case 'put':
-                $this->putJson($uri, $data);
-                break;
-            case 'delete':
-                $this->deleteJson($uri);
-                break;
-        }
-        
-        return $recorder->stopRecording();
-    }
-    
-    protected function assertQueryCount(string $traceId, int $expectedCount, string $message = null)
-    {
-        $trace = app(TraceStorage::class)->retrieve($traceId);
-        $actualCount = count($trace->database);
-        
-        $this->assertEquals($expectedCount, $actualCount, 
-            $message ?: "Expected {$expectedCount} queries, got {$actualCount}");
-    }
-    
-    protected function assertNoCacheHits(string $traceId)
-    {
-        $trace = app(TraceStorage::class)->retrieve($traceId);
-        $hits = array_filter($trace->cache, fn($event) => $event['type'] === 'hit');
-        
-        $this->assertEmpty($hits, 'Expected no cache hits');
-    }
-    
-    protected function assertCacheHit(string $traceId, string $key)
-    {
-        $trace = app(TraceStorage::class)->retrieve($traceId);
-        $hits = array_filter($trace->cache, function($event) use ($key) {
-            return $event['type'] === 'hit' && $event['key'] === $key;
-        });
-        
-        $this->assertNotEmpty($hits, "Expected cache hit for key: {$key}");
-    }
-}
-```
-
-**Usage in Tests:**
-```php
-class ProductApiTest extends TestCase
-{
-    use ChronoTraceTestTrait;
-    
-    public function test_product_search_uses_cache()
-    {
-        // First request should cache the results
-        $traceId1 = $this->recordRequest('GET', '/api/products/search?q=laptop');
-        $this->assertNoCacheHits($traceId1);
-        
-        // Second request should hit cache
-        $traceId2 = $this->recordRequest('GET', '/api/products/search?q=laptop');
-        $this->assertCacheHit($traceId2, 'products:search:laptop');
-    }
-}
-```
-
-## Performance Optimization Workflow
-
-### Identifying Performance Issues
-
-**1. Benchmark Current Performance:**
-```bash
-# Create baseline measurements
-php artisan chronotrace:record /api/slow-endpoint
-BASELINE=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
-
-echo "Baseline metrics:"
-php artisan chronotrace:replay $BASELINE | grep -E "(Duration|Memory|queries)"
-```
-
-**2. Profile Queries:**
-```bash
-# Analyze database performance
-php artisan chronotrace:replay $BASELINE --db > queries-before.txt
+# View SQL bindings for debugging
+php artisan chronotrace:replay {trace-id} --db --bindings
 
 # Look for slow queries
-cat queries-before.txt | grep -E "\([0-9]{3,}" # >100ms queries
+php artisan chronotrace:replay {trace-id} --db | grep -E "[0-9]{3,}ms"
 ```
 
-**3. Optimize Code:**
-```php
-// Before: N+1 problem
-$users = User::all();
-foreach ($users as $user) {
-    echo $user->posts->count(); // N+1!
-}
-
-// After: Eager loading
-$users = User::withCount('posts')->get();
-foreach ($users as $user) {
-    echo $user->posts_count;
-}
-```
-
-**4. Verify Improvements:**
-```bash
-# Record after optimization
-php artisan chronotrace:record /api/slow-endpoint
-OPTIMIZED=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
-
-# Compare results
-echo "Before optimization:"
-php artisan chronotrace:replay $BASELINE --db | grep -c "Query:"
-
-echo "After optimization:"
-php artisan chronotrace:replay $OPTIMIZED --db | grep -c "Query:"
-```
-
-### Automated Performance Testing
+#### Cache Analysis
 
 ```bash
-#!/bin/bash
-# scripts/performance-test.sh
+# Check cache efficiency
+php artisan chronotrace:replay {trace-id} --cache
 
-ENDPOINTS=(
-    "/api/users"
-    "/api/products"
-    "/api/dashboard"
-    "/api/reports/summary"
-)
+# Look for cache misses that could be optimized
+php artisan chronotrace:replay {trace-id} --cache | grep "MISS"
+```
 
-echo "=== Performance Test Report ==="
-echo "Generated: $(date)"
-echo
+#### External Service Integration
 
-for endpoint in "${ENDPOINTS[@]}"; do
-    echo "Testing: $endpoint"
-    
-    # Record multiple samples
-    for i in {1..3}; do
-        php artisan chronotrace:record "$endpoint" > /dev/null 2>&1
-    done
-    
-    # Get last 3 traces
-    TRACES=($(php artisan chronotrace:list --limit=3 | tail -n +4 | head -3 | awk '{print $2}'))
-    
-    total_duration=0
-    total_queries=0
-    
-    for trace in "${TRACES[@]}"; do
-        duration=$(php artisan chronotrace:replay "$trace" | grep "Duration:" | awk '{print $3}' | sed 's/ms//')
-        queries=$(php artisan chronotrace:replay "$trace" --db | grep -c "Query:")
-        
-        total_duration=$((total_duration + duration))
-        total_queries=$((total_queries + queries))
-    done
-    
-    avg_duration=$((total_duration / 3))
-    avg_queries=$((total_queries / 3))
-    
-    echo "  Average Duration: ${avg_duration}ms"
-    echo "  Average Queries: ${avg_queries}"
-    
-    # Alert on performance issues
-    if [ $avg_duration -gt 1000 ]; then
-        echo "  ⚠️  SLOW RESPONSE (>1s)"
-    fi
-    
-    if [ $avg_queries -gt 20 ]; then
-        echo "  ⚠️  HIGH QUERY COUNT (>20)"
-    fi
-    
-    echo
-done
+```bash
+# Monitor API calls to external services
+php artisan chronotrace:replay {trace-id} --http
+
+# Check for failed external requests
+php artisan chronotrace:replay {trace-id} --http | grep -E "(Failed|4[0-9][0-9]|5[0-9][0-9])"
+```
+
+## Test-Driven Development with ChronoTrace
+
+### 1. Generate Tests from User Stories
+
+```bash
+# Record user workflow
+php artisan chronotrace:record /complete-user-registration \
+  --method=POST \
+  --data='{"email":"user@example.com","password":"password123"}'
+
+# Generate test from the workflow
+php artisan chronotrace:replay {trace-id} --generate-test --test-path=tests/Feature
+
+# Review and customize the generated test
+cat tests/Feature/ChronoTrace_{trace-id}_Test.php
+```
+
+### 2. Regression Testing
+
+```bash
+# Create regression tests for bug fixes
+php artisan chronotrace:record /bug-endpoint-before-fix
+# ... fix the bug ...
+php artisan chronotrace:record /bug-endpoint-after-fix
+
+# Generate test that validates the fix
+php artisan chronotrace:replay {after-fix-trace-id} --generate-test --test-path=tests/Regression
+```
+
+### 3. Integration Testing
+
+```bash
+# Test complex integrations
+php artisan chronotrace:record /api/payment/process \
+  --method=POST \
+  --data='{"amount": 100, "method": "stripe"}' \
+  --headers='{"Authorization":"Bearer test-token"}'
+
+# Generate integration test
+php artisan chronotrace:replay {trace-id} --generate-test --test-path=tests/Integration
 ```
 
 ## Debugging Workflows
 
-### External API Debugging
+### 1. API Debugging
 
-**1. Record API Integration:**
 ```bash
-# Test external API calls
-php artisan chronotrace:record /api/weather-forecast
-```
-
-**2. Analyze External Dependencies:**
-```bash
-TRACE_ID=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
-
-# Check external API calls
-php artisan chronotrace:replay $TRACE_ID --http
-
-# Look for failures or slow responses
-php artisan chronotrace:replay $TRACE_ID --http | grep -E "(Failed|[0-9]{4,}ms)"
-```
-
-**3. Mock Slow Services for Testing:**
-```php
-// tests/Feature/WeatherApiTest.php
-
-public function test_handles_slow_weather_api()
-{
-    // Mock slow response
-    Http::fake([
-        'api.weather.com/*' => Http::response(['data' => 'test'], 200, [])
-            ->delay(5000), // 5 second delay
-    ]);
-    
-    $traceId = $this->recordRequest('GET', '/api/weather-forecast');
-    
-    $trace = app(TraceStorage::class)->retrieve($traceId);
-    
-    // Verify timeout handling
-    $this->assertLessThan(10000, $trace->response->duration); // Should timeout before 10s
-}
-```
-
-### Cache Debugging
-
-**1. Cache Miss Investigation:**
-```bash
-# Record cache-heavy endpoint
-php artisan chronotrace:record /api/popular-products
-
-TRACE_ID=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
-
-# Check cache efficiency
-php artisan chronotrace:replay $TRACE_ID --cache | grep -c "MISS"
-php artisan chronotrace:replay $TRACE_ID --cache | grep -c "HIT"
-```
-
-**2. Cache Invalidation Debugging:**
-```bash
-# Clear cache and record
-php artisan cache:clear
-php artisan chronotrace:record /api/products/1
-
-# Check what gets cached
-TRACE_ID=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
-php artisan chronotrace:replay $TRACE_ID --cache | grep "WRITE"
-```
-
-### Queue Job Debugging
-
-**1. Job Failure Investigation:**
-```bash
-# Record job-dispatching endpoint
-php artisan chronotrace:record /orders/process \
+# Record API request with full detail
+php artisan chronotrace:record /api/problematic-endpoint \
   --method=POST \
-  --data='{"order_id": 123}'
+  --data='{"test": "data"}' \
+  --headers='{"Content-Type":"application/json","Authorization":"Bearer token"}'
 
-TRACE_ID=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
-
-# Check job execution
-php artisan chronotrace:replay $TRACE_ID --jobs
+# Analyze with maximum detail
+php artisan chronotrace:replay {trace-id} --detailed --context --headers --content --bindings
 ```
 
-**2. Queue Performance Analysis:**
+### 2. Performance Debugging
+
 ```bash
-# Look for slow jobs
-php artisan chronotrace:replay $TRACE_ID --jobs | grep -E "STARTED.*COMPLETED" | while read line; do
-    # Extract timing information
-    echo "$line"
+# Record slow endpoint
+php artisan chronotrace:record /slow-dashboard-page
+
+# Analyze performance issues
+php artisan chronotrace:replay {trace-id} | grep -E "(Duration|Memory|Query.*[0-9]{3,}ms)"
+
+# Focus on database performance
+php artisan chronotrace:replay {trace-id} --db --bindings | grep -E "[0-9]{3,}ms"
+```
+
+### 3. Queue Job Debugging
+
+```bash
+# Record endpoint that dispatches jobs
+php artisan chronotrace:record /trigger-background-jobs \
+  --method=POST \
+  --data='{"process": "batch_emails"}'
+
+# Analyze job processing
+php artisan chronotrace:replay {trace-id} --jobs
+
+# Check for job failures
+php artisan chronotrace:replay {trace-id} --jobs | grep -E "(Failed|Error)"
+```
+
+## Code Review Process
+
+### 1. Pre-Review Testing
+
+```bash
+# Create script for feature branch testing
+#!/bin/bash
+# test-feature-branch.sh
+
+echo "Testing feature branch with ChronoTrace..."
+
+# Test main user flows
+php artisan chronotrace:record /api/main-feature
+php artisan chronotrace:record /api/main-feature --method=POST --data='{"test": true}'
+
+# Get trace IDs
+TRACES=$(php artisan chronotrace:list --limit=2 --full-id | grep "│" | awk '{print $2}')
+
+echo "Generated traces for review:"
+for TRACE in $TRACES; do
+    echo "  Trace: $TRACE"
+    echo "  Command: php artisan chronotrace:replay $TRACE"
+done
+
+# Generate summary report
+echo "Performance Summary:"
+for TRACE in $TRACES; do
+    php artisan chronotrace:replay $TRACE | grep -E "(Duration|Memory|Response Status)"
 done
 ```
 
-## Git Integration
-
-### Pre-commit Hook
+### 2. Code Review Checklist
 
 ```bash
+# Performance review script
 #!/bin/bash
-# .git/hooks/pre-commit
+# performance-review.sh
 
-echo "Running ChronoTrace performance check..."
+TRACE_ID=$1
 
-# Validate ChronoTrace setup first
-php artisan chronotrace:diagnose > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-    echo "❌ ChronoTrace configuration issues detected"
-    echo "   Run: php artisan chronotrace:diagnose"
+if [ -z "$TRACE_ID" ]; then
+    echo "Usage: $0 <trace-id>"
     exit 1
 fi
 
-# Test critical endpoints
-CRITICAL_ENDPOINTS=("/api/users" "/api/orders")
+echo "=== Performance Review for $TRACE_ID ==="
 
-for endpoint in "${CRITICAL_ENDPOINTS[@]}"; do
-    php artisan chronotrace:record "$endpoint" > /dev/null 2>&1
+# Check overall performance
+echo "Overall Performance:"
+php artisan chronotrace:replay $TRACE_ID | grep -E "(Duration|Memory|Response Status)"
+
+echo
+echo "Database Performance:"
+DB_QUERIES=$(php artisan chronotrace:replay $TRACE_ID --db | grep -c "Query:")
+SLOW_QUERIES=$(php artisan chronotrace:replay $TRACE_ID --db | grep -c "[0-9]{3,}ms")
+echo "  Total queries: $DB_QUERIES"
+echo "  Slow queries (>100ms): $SLOW_QUERIES"
+
+echo
+echo "Cache Performance:"
+CACHE_HITS=$(php artisan chronotrace:replay $TRACE_ID --cache | grep -c "HIT")
+CACHE_MISSES=$(php artisan chronotrace:replay $TRACE_ID --cache | grep -c "MISS")
+echo "  Cache hits: $CACHE_HITS"
+echo "  Cache misses: $CACHE_MISSES"
+
+echo
+echo "External Dependencies:"
+HTTP_REQUESTS=$(php artisan chronotrace:replay $TRACE_ID --http | grep -c "HTTP Request:")
+HTTP_FAILURES=$(php artisan chronotrace:replay $TRACE_ID --http | grep -c -E "(Failed|[45][0-9][0-9])")
+echo "  HTTP requests: $HTTP_REQUESTS"
+echo "  HTTP failures: $HTTP_FAILURES"
+
+# Generate recommendations
+echo
+echo "=== Recommendations ==="
+if [ $SLOW_QUERIES -gt 0 ]; then
+    echo "❌ Optimize slow database queries"
+fi
+
+if [ $CACHE_MISSES -gt $CACHE_HITS ]; then
+    echo "❌ Consider adding more caching"
+fi
+
+if [ $HTTP_FAILURES -gt 0 ]; then
+    echo "❌ Review external service error handling"
+fi
+
+if [ $SLOW_QUERIES -eq 0 ] && [ $HTTP_FAILURES -eq 0 ]; then
+    echo "✅ Performance looks good!"
+fi
+```
+
+## Continuous Integration Integration
+
+### 1. CI Pipeline Test
+
+```yaml
+# .github/workflows/chronotrace.yml
+name: ChronoTrace Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  chronotrace:
+    runs-on: ubuntu-latest
     
-    TRACE_ID=$(php artisan chronotrace:list --limit=1 --full-id | tail -1 | awk '{print $2}')
-    DURATION=$(php artisan chronotrace:replay "$TRACE_ID" | grep "Duration:" | awk '{print $3}' | sed 's/ms//')
-    QUERIES=$(php artisan chronotrace:replay "$TRACE_ID" --db | grep -c "Query:")
+    steps:
+    - uses: actions/checkout@v3
     
-    if [ "$DURATION" -gt 2000 ]; then
-        echo "❌ Performance regression detected in $endpoint"
-        echo "   Duration: ${DURATION}ms (>2000ms threshold)"
-        exit 1
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        
+    - name: Install dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+      
+    - name: Install ChronoTrace
+      run: php artisan chronotrace:install
+      
+    - name: Validate ChronoTrace setup
+      run: php artisan chronotrace:diagnose
+      
+    - name: Test critical endpoints
+      run: |
+        php artisan chronotrace:record /api/health
+        php artisan chronotrace:record /api/users --method=GET
+        
+    - name: Analyze traces for performance
+      run: |
+        TRACES=$(php artisan chronotrace:list --limit=10 --full-id | grep "│" | awk '{print $2}')
+        for TRACE in $TRACES; do
+          echo "Analyzing trace: $TRACE"
+          php artisan chronotrace:replay $TRACE | grep -E "(Duration|Memory)"
+        done
+```
+
+### 2. Performance Gate
+
+```bash
+#!/bin/bash
+# performance-gate.sh - CI performance check
+
+MAX_DURATION=2000  # 2 seconds
+MAX_QUERIES=20
+MAX_MEMORY=50      # MB
+
+TRACE_ID=$(php artisan chronotrace:list --limit=1 --full-id | grep "│" | head -1 | awk '{print $2}')
+
+# Check duration
+DURATION=$(php artisan chronotrace:replay $TRACE_ID | grep "Duration:" | awk '{print $3}' | sed 's/ms//')
+if [ "$DURATION" -gt "$MAX_DURATION" ]; then
+    echo "❌ Performance gate failed: Duration ${DURATION}ms > ${MAX_DURATION}ms"
+    exit 1
+fi
+
+# Check query count
+QUERY_COUNT=$(php artisan chronotrace:replay $TRACE_ID --db | grep -c "Query:")
+if [ "$QUERY_COUNT" -gt "$MAX_QUERIES" ]; then
+    echo "❌ Performance gate failed: Query count $QUERY_COUNT > $MAX_QUERIES"
+    exit 1
+fi
+
+# Check memory usage
+MEMORY=$(php artisan chronotrace:replay $TRACE_ID | grep "Memory Usage:" | awk '{print $3}' | sed 's/MB//')
+if (( $(echo "$MEMORY > $MAX_MEMORY" | bc -l) )); then
+    echo "❌ Performance gate failed: Memory ${MEMORY}MB > ${MAX_MEMORY}MB"
+    exit 1
+fi
+
+echo "✅ Performance gate passed"
+```
+
+## Local Development Scripts
+
+### 1. Daily Development Setup
+
+```bash
+#!/bin/bash
+# daily-dev-setup.sh
+
+echo "🚀 Starting daily development setup..."
+
+# Validate ChronoTrace
+php artisan chronotrace:diagnose
+
+# Clean old traces
+php artisan chronotrace:purge --days=1 --confirm
+
+# Test main application flows
+echo "Testing main application flows..."
+php artisan chronotrace:record /
+php artisan chronotrace:record /api/health
+php artisan chronotrace:record /login --method=GET
+
+echo "Recent traces:"
+php artisan chronotrace:list --limit=5
+
+echo "✅ Development environment ready!"
+```
+
+### 2. Feature Testing Script
+
+```bash
+#!/bin/bash
+# test-feature.sh
+
+FEATURE_PATH=$1
+
+if [ -z "$FEATURE_PATH" ]; then
+    echo "Usage: $0 <feature-endpoint>"
+    echo "Example: $0 /api/new-feature"
+    exit 1
+fi
+
+echo "Testing feature: $FEATURE_PATH"
+
+# Test different HTTP methods
+echo "Testing GET..."
+php artisan chronotrace:record "$FEATURE_PATH" --method=GET
+
+echo "Testing POST..."
+php artisan chronotrace:record "$FEATURE_PATH" --method=POST --data='{"test": true}'
+
+# Get latest traces
+TRACES=$(php artisan chronotrace:list --limit=2 --full-id | grep "│" | awk '{print $2}')
+
+echo "Analysis:"
+for TRACE in $TRACES; do
+    echo "=== Trace: $TRACE ==="
+    php artisan chronotrace:replay $TRACE | grep -E "(Response Status|Duration|Memory)"
+    
+    # Check for issues
+    ERRORS=$(php artisan chronotrace:replay $TRACE | grep -c -E "(Error|Failed|5[0-9][0-9])")
+    if [ $ERRORS -gt 0 ]; then
+        echo "❌ Issues detected in trace $TRACE"
+        php artisan chronotrace:replay $TRACE
+    else
+        echo "✅ Trace $TRACE looks good"
     fi
-    
-    if [ "$QUERIES" -gt 15 ]; then
-        echo "❌ Query count regression detected in $endpoint"
-        echo "   Queries: $QUERIES (>15 queries threshold)"
-        exit 1
-    fi
+    echo
+done
+```
+
+### 3. Performance Comparison Script
+
+```bash
+#!/bin/bash
+# compare-performance.sh
+
+ENDPOINT=$1
+BEFORE_TRACE=$2
+
+if [ -z "$ENDPOINT" ] || [ -z "$BEFORE_TRACE" ]; then
+    echo "Usage: $0 <endpoint> <before-trace-id>"
+    echo "This script compares performance before and after changes"
+    exit 1
+fi
+
+echo "Recording new trace for comparison..."
+php artisan chronotrace:record "$ENDPOINT"
+
+AFTER_TRACE=$(php artisan chronotrace:list --limit=1 --full-id | grep "│" | head -1 | awk '{print $2}')
+
+echo "=== Performance Comparison ==="
+echo "Before trace: $BEFORE_TRACE"
+echo "After trace:  $AFTER_TRACE"
+echo
+
+echo "Before performance:"
+php artisan chronotrace:replay $BEFORE_TRACE | grep -E "(Duration|Memory|Response Status)"
+
+echo
+echo "After performance:"
+php artisan chronotrace:replay $AFTER_TRACE | grep -E "(Duration|Memory|Response Status)"
+
+echo
+echo "Database comparison:"
+echo "Before queries:"
+php artisan chronotrace:replay $BEFORE_TRACE --db | grep -c "Query:"
+echo "After queries:"
+php artisan chronotrace:replay $AFTER_TRACE --db | grep -c "Query:"
+```
+
+## Best Practices for Development
+
+### 1. Trace Naming Convention
+
+Use descriptive commit messages and branch names to make traces easier to identify:
+
+```bash
+# Before making changes, record baseline
+git checkout -b feature/user-dashboard
+php artisan chronotrace:record /dashboard --method=GET
+# Note trace ID in commit or PR description
+```
+
+### 2. Regular Cleanup
+
+```bash
+# Add to your daily routine
+php artisan chronotrace:purge --days=7 --confirm
+```
+
+### 3. Performance Budgets
+
+Set performance expectations:
+
+```bash
+# Check if endpoint meets performance budget
+TRACE_ID=$(php artisan chronotrace:record /api/endpoint && php artisan chronotrace:list --limit=1 --full-id | grep "│" | head -1 | awk '{print $2}')
+DURATION=$(php artisan chronotrace:replay $TRACE_ID | grep "Duration:" | awk '{print $3}' | sed 's/ms//')
+
+if [ "$DURATION" -gt 1000 ]; then
+    echo "❌ Performance budget exceeded: ${DURATION}ms > 1000ms"
+else
+    echo "✅ Performance budget met: ${DURATION}ms"
+fi
+```
+
+## Team Workflows
+
+### 1. Onboarding New Developers
+
+```bash
+#!/bin/bash
+# onboard-developer.sh
+
+echo "🎯 Developer Onboarding with ChronoTrace"
+
+# Setup ChronoTrace
+php artisan chronotrace:install
+php artisan chronotrace:diagnose
+
+# Record key application flows
+echo "Recording key application flows for learning..."
+php artisan chronotrace:record /
+php artisan chronotrace:record /api/users
+php artisan chronotrace:record /api/orders
+
+echo "Use these traces to understand the application:"
+php artisan chronotrace:list --full-id
+
+echo
+echo "Try these commands:"
+echo "  php artisan chronotrace:replay {trace-id} --detailed"
+echo "  php artisan chronotrace:replay {trace-id} --db"
+echo "  php artisan chronotrace:replay {trace-id} --http"
+```
+
+### 2. Code Review Preparation
+
+```bash
+#!/bin/bash
+# prepare-for-review.sh
+
+echo "Preparing traces for code review..."
+
+# Test all modified endpoints
+git diff --name-only main | grep -E "(routes|Controller)" | while read file; do
+    echo "Testing endpoints in $file"
+    # Extract and test routes (simplified)
 done
 
-echo "✅ Performance checks passed"
+# Generate performance report
+php artisan chronotrace:list --limit=10 > traces-for-review.txt
+echo "Traces saved to traces-for-review.txt"
 ```
 
-### Branch Comparison
+---
 
-```bash
-#!/bin/bash
-# scripts/compare-branches.sh
-
-if [ $# -ne 2 ]; then
-    echo "Usage: $0 <branch1> <branch2>"
-    exit 1
-fi
-
-BRANCH1=$1
-BRANCH2=$2
-ENDPOINT=${3:-"/api/users"}
-
-echo "Comparing performance between $BRANCH1 and $BRANCH2"
-
-# Test branch 1
-git checkout $BRANCH1
-php artisan chronotrace:record "$ENDPOINT" > /dev/null 2>&1
-TRACE1=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
-
-# Test branch 2
-git checkout $BRANCH2
-php artisan chronotrace:record "$ENDPOINT" > /dev/null 2>&1
-TRACE2=$(php artisan chronotrace:list --limit=1 | tail -1 | awk '{print $2}')
-
-# Compare results
-echo "$BRANCH1:"
-php artisan chronotrace:replay $TRACE1 | grep -E "(Duration|Memory|queries)"
-
-echo "$BRANCH2:"
-php artisan chronotrace:replay $TRACE2 | grep -E "(Duration|Memory|queries)"
-```
-
-## Team Collaboration
-
-### Sharing Traces
-
-**Export Trace for Sharing:**
-```bash
-# Export trace data
-php artisan chronotrace:replay {trace-id} --format=json > trace-export.json
-
-# Share via Git (remove sensitive data first)
-git add trace-export.json
-git commit -m "Add trace for bug investigation"
-```
-
-**Import and Analyze:**
-```bash
-# Team member can analyze the exported trace
-cat trace-export.json | jq '.database[] | select(.time > 100)'
-```
-
-### Documentation Integration
-
-**Add Performance Notes to README:**
-```markdown
-## Performance Benchmarks
-
-Last updated: 2024-01-15
-
-| Endpoint | Avg Duration | Avg Queries | Notes |
-|----------|--------------|-------------|-------|
-| `/api/users` | 245ms | 3 | Optimized with eager loading |
-| `/api/products` | 180ms | 2 | Uses Redis caching |
-| `/api/orders` | 890ms | 12 | Consider pagination |
-
-To regenerate: `bash scripts/performance-test.sh`
-```
-
-## IDE Integration
-
-### VS Code Snippets
-
-```json
-// .vscode/snippets.json
-{
-    "chronotrace-record": {
-        "prefix": "ctrace",
-        "body": [
-            "php artisan chronotrace:record ${1:/endpoint} ${2:--method=GET}"
-        ],
-        "description": "Record ChronoTrace"
-    },
-    "chronotrace-replay": {
-        "prefix": "creplay",
-        "body": [
-            "php artisan chronotrace:replay ${1:trace-id} ${2:--db}"
-        ],
-        "description": "Replay ChronoTrace"
-    }
-}
-```
-
-### PHPStorm Live Templates
-
-Create live templates for common ChronoTrace operations:
-- `ctrace` → `php artisan chronotrace:record`
-- `creplay` → `php artisan chronotrace:replay`
-- `clist` → `php artisan chronotrace:list`
-
-## Best Practices
-
-1. **Regular Cleanup**: Run `php artisan chronotrace:purge --days=3 --confirm` daily in development
-2. **Performance Baselines**: Establish benchmarks for critical endpoints
-3. **Automated Testing**: Include performance tests in your CI pipeline
-4. **Documentation**: Keep performance notes updated in your project documentation
-5. **Team Training**: Ensure all developers know how to use ChronoTrace for debugging
-6. **Focus Areas**: Prioritize monitoring authentication, payments, and data-heavy endpoints
-
-## Next Steps
-
-- [Set up production monitoring](production-monitoring.md)
-- [Configure custom storage](custom-storage.md)
-- [Review security practices](../docs/security.md)
+**Next Steps:**
+- [Production Monitoring](production-monitoring.md)
+- [Configuration Examples](configuration-examples.md)
+- [Advanced Features](../docs/api-reference.md)
