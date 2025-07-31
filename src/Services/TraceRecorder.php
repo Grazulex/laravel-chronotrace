@@ -67,7 +67,14 @@ class TraceRecorder
      */
     public function finishCapture(string $traceId, Response $response, float $duration, int $memoryUsage): void
     {
+        if (config('chronotrace.debug', false)) {
+            error_log("ChronoTrace: finishCapture called for trace {$traceId}, status: {$response->getStatusCode()}");
+        }
+
         if (! isset($this->activeTraces[$traceId])) {
+            if (config('chronotrace.debug', false)) {
+                error_log("ChronoTrace: Trace {$traceId} not found in active traces");
+            }
             return;
         }
 
@@ -77,7 +84,13 @@ class TraceRecorder
         $traceResponse = $this->captureResponse($response, $duration, $memoryUsage);
 
         // Décider si on doit stocker selon le mode et le statut
-        if ($this->shouldStore($traceResponse->status)) {
+        $shouldStore = $this->shouldStore($traceResponse->status);
+        if (config('chronotrace.debug', false)) {
+            $shouldStoreStr = $shouldStore ? 'true' : 'false';
+            error_log("ChronoTrace: shouldStore={$shouldStoreStr}, status={$traceResponse->status}");
+        }
+
+        if ($shouldStore) {
             $this->storeTrace($traceId, $trace, $traceResponse);
         }
 
@@ -269,6 +282,9 @@ class TraceRecorder
     private function storeTrace(string $traceId, array $trace, TraceResponse $response): void
     {
         if (! isset($trace['request']) || ! ($trace['request'] instanceof TraceRequest)) {
+            if (config('chronotrace.debug', false)) {
+                error_log("ChronoTrace: Cannot store trace {$traceId} - invalid request data");
+            }
             return;
         }
 
@@ -289,16 +305,41 @@ class TraceRecorder
             filesystem: $trace['captured_data']['filesystem'],
         );
 
+        // En mode debug, forcer le stockage synchrone pour faciliter le debugging
+        $asyncStorage = config('chronotrace.async_storage', true);
+        if (config('chronotrace.debug', false)) {
+            $asyncStorage = false;
+        }
+
         // Stockage asynchrone via queue pour ne pas ralentir la réponse
-        if (config('chronotrace.async_storage', true)) {
+        if ($asyncStorage) {
             $connection = config('chronotrace.queue_connection', 'default');
             if (is_string($connection)) {
+                if (config('chronotrace.debug', false)) {
+                    error_log("ChronoTrace: Queuing trace {$traceId} on connection {$connection}");
+                }
                 Queue::connection($connection)
                     ->pushOn(config('chronotrace.queue_name', 'chronotrace'), new StoreTraceJob($traceData));
+            } else {
+                if (config('chronotrace.debug', false)) {
+                    error_log("ChronoTrace: Invalid queue connection configuration");
+                }
             }
         } else {
             // Stockage synchrone (dev/debug uniquement)
-            app(TraceStorage::class)->store($traceData);
+            if (config('chronotrace.debug', false)) {
+                error_log("ChronoTrace: Storing trace {$traceId} synchronously");
+            }
+            try {
+                app(TraceStorage::class)->store($traceData);
+                if (config('chronotrace.debug', false)) {
+                    error_log("ChronoTrace: Successfully stored trace {$traceId}");
+                }
+            } catch (Throwable $e) {
+                if (config('chronotrace.debug', false)) {
+                    error_log("ChronoTrace: Failed to store trace {$traceId}: " . $e->getMessage());
+                }
+            }
         }
     }
 

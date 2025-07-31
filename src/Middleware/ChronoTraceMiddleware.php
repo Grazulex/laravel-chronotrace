@@ -43,7 +43,7 @@ class ChronoTraceMiddleware
         $startMemory = memory_get_usage(true);
 
         try {
-            /** @var Response $response */
+            /** @var SymfonyResponse $response */
             $response = $next($request);
 
             // Calculer les métriques
