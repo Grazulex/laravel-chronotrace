@@ -2,35 +2,33 @@
 
 declare(strict_types=1);
 
-use Tests\TestCase;
+use Grazulex\LaravelChronotrace\LaravelChronotraceServiceProvider;
+use Illuminate\Foundation\Application;
 
-uses(TestCase::class);
-
-it('package is correctly installed', function () {
-    expect(class_exists(\Grazulex\LaravelChronotrace\LaravelChronotraceServiceProvider::class))->toBeTrue();
+it('package is correctly installed', function (): void {
+    expect(class_exists(LaravelChronotraceServiceProvider::class))->toBeTrue();
 });
 
-it('config file path is accessible', function () {
-    $configPath = __DIR__.'/../../config/chronotrace.php';
+it('config file path is accessible', function (): void {
+    $configPath = __DIR__ . '/../../config/chronotrace.php';
     expect(file_exists($configPath))->toBeTrue();
     expect(is_readable($configPath))->toBeTrue();
 });
 
-it('application can boot without errors', function () {
-    /** @var TestCase $this */
+it('application can boot without errors', function (): void {
+    /** @var Tests\TestCase $this */
     // Test que l'application peut démarrer sans erreur
-    expect($this->app)->toBeInstanceOf(\Illuminate\Foundation\Application::class);
-    expect($this->app->isBooted())->toBeTrue();
+    $app = $this->getApp();
+    expect($app)->toBeInstanceOf(Application::class);
+    expect($app->isBooted())->toBeTrue();
 });
 
-it('has no conflicting service providers', function () {
-    /** @var TestCase $this */
-    $providers = $this->app->getLoadedProviders();
-    
+it('has no conflicting service providers', function (): void {
+    /** @var Tests\TestCase $this */
+    $providers = $this->getApp()->getLoadedProviders();
+
     // Vérifier qu'il n'y a qu'une instance de notre service provider
-    $chronotraceProviders = array_filter($providers, function ($provider, $key) {
-        return is_string($key) && str_contains($key, 'Chronotrace');
-    }, ARRAY_FILTER_USE_BOTH);
-    
+    $chronotraceProviders = array_filter($providers, fn($provider, $key): bool => str_contains((string) $key, 'Chronotrace'), ARRAY_FILTER_USE_BOTH);
+
     expect(count($chronotraceProviders))->toBe(1);
 });

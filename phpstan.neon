@@ -25,3 +25,15 @@ parameters:
         -
             message: '#Class Pest\\Version not found#'
             path: src/LaravelChronotraceServiceProvider.php
+        -
+            message: '#Access to an undefined property PHPUnit\\Framework\\TestCase::\$app#'
+            paths:
+                - tests/*
+        -
+            message: '#Cannot call method .* on mixed#'
+            paths:
+                - tests/*
+        -
+            message: '#Unable to resolve the template type TValue in call to function expect#'
+            paths:
+                - tests/*

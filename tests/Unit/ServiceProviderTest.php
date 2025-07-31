@@ -3,23 +3,21 @@
 declare(strict_types=1);
 
 use Grazulex\LaravelChronotrace\LaravelChronotraceServiceProvider;
-use Tests\TestCase;
 
-uses(TestCase::class);
+it('can be instantiated', function (): void {
+    /** @var Tests\TestCase $this */
+    $provider = new LaravelChronotraceServiceProvider($this->getApp());
 
-it('can be instantiated', function () {
-    /** @var TestCase $this */
-    $provider = new LaravelChronotraceServiceProvider($this->app);
-    
     expect($provider)->toBeInstanceOf(LaravelChronotraceServiceProvider::class);
 });
 
-it('registers the service provider correctly', function () {
-    /** @var TestCase $this */
-    $providers = $this->app->getLoadedProviders();
-    
+it('registers the service provider correctly', function (): void {
+    /** @var Tests\TestCase $this */
+    $providers = $this->getApp()->getLoadedProviders();
+
     expect($providers)->toHaveKey(LaravelChronotraceServiceProvider::class);
-});it('merges config correctly', function () {
+});
+it('merges config correctly', function (): void {
     // Le config devrait être disponible
     expect(config('chronotrace'))->toBeArray();
     expect(config('chronotrace.enabled'))->toBeTrue();
@@ -29,7 +27,7 @@ it('registers the service provider correctly', function () {
     expect(config('chronotrace.retention_days'))->toBe(15);
 });
 
-it('has correct config structure', function () {
+it('has correct config structure', function (): void {
     $config = config('chronotrace');
 
     expect($config)->toHaveKeys([
@@ -43,7 +41,7 @@ it('has correct config structure', function () {
     ]);
 });
 
-it('has valid config values', function () {
+it('has valid config values', function (): void {
     expect(config('chronotrace.mode'))->toBeIn(['always', 'sample', 'record_on_error']);
     expect(config('chronotrace.sample_rate'))->toBeFloat();
     expect(config('chronotrace.storage'))->toBeString();

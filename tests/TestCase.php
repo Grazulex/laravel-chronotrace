@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use Grazulex\LaravelChronotrace\LaravelChronotraceServiceProvider;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\File;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Override;
@@ -25,6 +26,17 @@ abstract class TestCase extends Orchestra
         $file = base_path('chronotrace_test.log');
         $tag = $context !== '' && $context !== '0' ? "=== $context ===\n" : '';
         File::append($file, $tag . $content . "\n");
+    }
+
+    /**
+     * Get the application instance.
+     */
+    public function getApp(): Application
+    {
+        /** @var Application $app */
+        $app = $this->app;
+
+        return $app;
     }
 
     protected function getEnvironmentSetUp($app): void

@@ -2,10 +2,12 @@
 
 namespace Grazulex\LaravelChronotrace;
 
+use Override;
 use Illuminate\Support\ServiceProvider;
 
 class LaravelChronotraceServiceProvider extends ServiceProvider
 {
+    #[Override]
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/chronotrace.php', 'chronotrace');
