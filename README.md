@@ -2,13 +2,13 @@
 
 <div align="center">
   <img src="new_logo.png" alt="Laravel ChronoTrace" width="200">
-  <p><strong>⏱️ Record and replay any Laravel request or job deterministically — and auto-generate reproducible tests from production traces.</strong></p>
+  <p><strong>⏱️ Record and replay Laravel requests deterministically — capture all database queries, cache operations, HTTP calls, and queue jobs for debugging and analysis.</strong></p>
 
   [![Latest Version](https://img.shields.io/packagist/v/grazulex/laravel-chronotrace.svg?style=flat-square)](https://packagist.org/packages/grazulex/laravel-chronotrace)
   [![Total Downloads](https://img.shields.io/packagist/dt/grazulex/laravel-chronotrace.svg?style=flat-square)](https://packagist.org/packages/grazulex/laravel-chronotrace)
   [![License](https://img.shields.io/github/license/grazulex/laravel-chronotrace.svg?style=flat-square)](https://github.com/Grazulex/laravel-chronotrace/blob/main/LICENSE.md)
   [![PHP Version](https://img.shields.io/badge/php-8.3%2B-777bb4?style=flat-square&logo=php)](https://php.net/)
-  [![Laravel Version](https://img.shields.io/badge/laravel-11.x%20%7C%2012.x-ff2d20?style=flat-square&logo=laravel)](https://laravel.com/)
+  [![Laravel Version](https://img.shields.io/badge/laravel-12.x-ff2d20?style=flat-square&logo=laravel)](https://laravel.com/)
   [![Tests](https://img.shields.io/github/actions/workflow/status/grazulex/laravel-chronotrace/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/Grazulex/laravel-chronotrace/actions)
   [![Code Style](https://img.shields.io/badge/code%20style-pint-000000?style=flat-square&logo=laravel)](https://github.com/laravel/pint)
 </div>
@@ -17,26 +17,27 @@
 
 ## 📖 Overview
 
-**Laravel ChronoTrace** revolutionizes debugging and test generation for Laravel apps by allowing you to:
+**Laravel ChronoTrace** is a powerful debugging and monitoring tool for Laravel applications that allows you to:
 
-- **Capture** any HTTP request or queued job (including DB queries, cache, external HTTP calls, mails, notifications, and side-effects)  
-- **Replay** it locally in a deterministic sandbox  
-- **Auto-generate a Pest test** that reproduces the exact production scenario  
+- **🎯 Capture** HTTP requests and their complete execution context (DB queries, cache operations, external HTTP calls, queue jobs)
+- **🔄 Replay** traces to analyze what happened during specific requests
+- **🔍 Debug** production issues with comprehensive event logs
+- **📊 Monitor** application performance and identify bottlenecks
 
-All with minimal impact on production performance.
+Perfect for debugging hard-to-reproduce issues, performance analysis, and understanding complex application flows.
 
 ---
 
 ## ✨ Features
 
-- **⏺️ Record-on-error** – Capture traces automatically when 5xx errors occur  
-- **🔁 Deterministic Replay** – Freeze time, randomness and IO for bit-perfect replays  
-- **🗄 Minimal Dataset Generation** – Build an ephemeral SQLite dataset or use virtual DB replay  
-- **📦 Trace Bundles** – Self-contained `.zip` bundles that include all data and IO needed  
-- **🧪 Auto-generated Tests** – Create Pest tests from real-world traffic in one command  
-- **🔍 N+1 Detection** – Identify lazy-loading issues and propose eager-load fixes  
-- **📊 Execution Graphs** – Visualize flow of controllers, events, listeners, jobs and queries  
-- **🔐 PII Scrubbing** – Mask sensitive fields by default (passwords, tokens, emails)
+- **⏺️ Smart Recording** – Multiple recording modes: always, sample rate, error-only, or targeted routes
+- **📊 Comprehensive Event Capture** – Database queries, cache operations, HTTP requests, queue jobs, and custom events
+- **🔄 Detailed Replay** – View complete execution flow with timestamps and performance metrics
+- **🎯 Flexible Filtering** – Focus on specific event types (DB, cache, HTTP, jobs) during analysis
+- **💾 Multiple Storage Options** – Local storage, S3, or custom storage adapters
+- **🔐 PII Scrubbing** – Automatically mask sensitive data (passwords, tokens, emails, etc.)
+- **⚡ Async Storage** – Queue-based storage for minimal performance impact
+- **🗂️ Automatic Cleanup** – Configurable retention policies and automatic purging
 
 ---
 
@@ -48,100 +49,131 @@ composer require --dev grazulex/laravel-chronotrace
 
 **Requirements:**
 - PHP 8.3+
-- Laravel 11.x | 12.x
+- Laravel 12.x
 
 ---
 
 ## 🚀 Quick Start
 
-### 1️⃣ Enable ChronoTrace
+### 1️⃣ Install and Configure
 
-Publish config:
 ```bash
+composer require --dev grazulex/laravel-chronotrace
 php artisan vendor:publish --tag=chronotrace-config
 ```
 
-Default config (config/chronotrace.php):
-```php
-return [
-  'mode' => 'record_on_error',    // only on 5xx errors
-  'storage' => 's3',               // or 'local'
-  'retention_days' => 15,
-  'scrub' => ['password', 'token', 'authorization'],
-];
+### 2️⃣ Configure Recording Mode
+
+Edit `config/chronotrace.php` or set environment variables:
+
+```env
+CHRONOTRACE_ENABLED=true
+CHRONOTRACE_MODE=record_on_error  # always | sample | record_on_error | targeted
+CHRONOTRACE_STORAGE=local         # local | s3
 ```
 
-### 2️⃣ Capture traces
-
-Once enabled, ChronoTrace will record targeted requests/jobs as trace bundles.  
-You can also manually record:
-```bash
-php artisan chronotrace:record --route=checkout
-```
-
-### 3️⃣ Pull trace bundles
+### 3️⃣ Record Traces
 
 ```bash
-php artisan chronotrace:pull --id=abc123 --dest=storage/chronotrace/
+# Record a specific endpoint
+php artisan chronotrace:record /api/users
+
+# Record with POST data
+php artisan chronotrace:record /api/users \
+  --method=POST \
+  --data='{"name":"John","email":"john@example.com"}'
 ```
 
-### 4️⃣ Replay deterministically
+### 4️⃣ View Your Traces
 
 ```bash
-php artisan chronotrace:replay --trace=storage/chronotrace/abc123 --strategy=virtual
+# List all traces
+php artisan chronotrace:list
+
+# Replay a specific trace (use ID from list command)
+php artisan chronotrace:replay abc12345-def6-7890-abcd-ef1234567890
 ```
 
-Or with ephemeral SQLite dataset:
+### 5️⃣ Filter Events
+
 ```bash
-php artisan chronotrace:replay --trace=... --strategy=sqlite
-```
+# View only database queries
+php artisan chronotrace:replay {trace-id} --db
 
-### 5️⃣ Generate a test
+# View only cache operations
+php artisan chronotrace:replay {trace-id} --cache
 
-```bash
-php artisan chronotrace:test --trace=storage/chronotrace/abc123 --name=CheckoutReplayTest
-```
-
-This generates:
-```
-tests/Feature/ChronoTrace/CheckoutReplayTest.php
-database/chronotrace/seeds/abc123.sql
+# View only HTTP requests
+php artisan chronotrace:replay {trace-id} --http
 ```
 
 ---
 
-## 🔧 Storage & Retention
+## 🔧 Storage & Configuration
 
-- Default store: `storage/chronotrace/{date}/{trace-id}/`
-- S3/Minio drivers available for distributed setups
-- Automatic TTL purge (default: 15 days)
-- Each trace is compressed and self-contained (JSON + assets)
+- **Local Storage**: `storage/chronotrace/{date}/{trace-id}/`
+- **S3/Minio**: Support for distributed setups with configurable buckets
+- **Automatic Cleanup**: TTL-based purge policies (default: 15 days)
+- **Compression**: Configurable compression for large traces
+- **PII Scrubbing**: Automatic masking of sensitive fields
 
 ---
 
-## 🧪 Example Generated Test
+## 📊 What Gets Captured
 
-```php
-it('replays production checkout bug', function () {
-    ChronoTrace::replay('abc123');
+Each trace includes comprehensive information:
 
-    $response = $this->get('/checkout?cart_id=123');
+```
+=== TRACE INFORMATION ===
+🆔 Trace ID: abc12345-def6-7890-abcd-ef1234567890
+🕒 Timestamp: 2024-01-15 14:30:22
+🌍 Environment: production
+🔗 Request URL: https://app.example.com/api/users
+📊 Response Status: 200
+⏱️  Duration: 245ms
+💾 Memory Usage: 18.45 KB
 
-    $response->assertStatus(500)
-             ->assertSee('Payment gateway error');
-});
+=== CAPTURED EVENTS ===
+📊 DATABASE EVENTS
+  🔍 Query: SELECT * FROM users WHERE active = ? (15ms)
+  🔍 Query: SELECT * FROM roles WHERE user_id IN (?, ?) (8ms)
+
+🗄️  CACHE EVENTS  
+  ❌ Cache MISS: users:list (store: redis)
+  💾 Cache WRITE: users:list (store: redis)
+
+🌐 HTTP EVENTS
+  📤 HTTP Request: GET https://api.external.com/validation
+  📥 HTTP Response: 200 (1,234 bytes)
+
+⚙️  JOB EVENTS
+  🔄 Job STARTED: ProcessUserRegistration
+  ✅ Job COMPLETED: ProcessUserRegistration
 ```
 
 ---
 
-## 🔍 Commands
+## 🔧 Available Commands
 
-- `chronotrace:record` – Enable recording for selected routes/jobs  
-- `chronotrace:pull` – Retrieve a trace bundle from prod  
-- `chronotrace:replay` – Replay a captured trace locally  
-- `chronotrace:test` – Generate a Pest test from a trace  
-- `chronotrace:list` – List available traces and their metadata  
-- `chronotrace:purge` – Purge old traces  
+- **`chronotrace:record`** – Record a trace for a specific URL  
+- **`chronotrace:list`** – List stored traces with metadata  
+- **`chronotrace:replay`** – Replay and analyze a captured trace  
+- **`chronotrace:purge`** – Remove old traces based on retention policy
+
+### Command Examples
+
+```bash
+# Record traces
+chronotrace:record /api/users --method=GET
+chronotrace:record /checkout --method=POST --data='{"cart_id": 123}'
+
+# List and analyze
+chronotrace:list --limit=10
+chronotrace:replay {trace-id} --db --cache
+
+# Maintenance
+chronotrace:purge --days=7 --confirm
+```  
 
 ---
 
@@ -166,6 +198,15 @@ it('replays production checkout bug', function () {
 ## 🤝 Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+---
+
+## 📚 Documentation
+
+- **[Installation Guide](docs/installation.md)** - Step-by-step installation instructions
+- **[Configuration Guide](docs/configuration.md)** - Complete configuration reference
+- **[Commands Reference](docs/commands.md)** - Detailed guide to all commands
+- **[Examples](examples/README.md)** - Practical usage examples and workflows
 
 ---
 
