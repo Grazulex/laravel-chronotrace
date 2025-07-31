@@ -140,8 +140,8 @@ class LaravelChronotraceServiceProvider extends ServiceProvider
      */
     private function showInstallationMessage(): void
     {
-        // Ne pas afficher de messages pendant les tests
-        if (app()->environment('testing')) {
+        // Ne pas afficher de messages pendant les tests ou l'analyse statique
+        if (app()->environment('testing') || defined('PHPSTAN_RUNNING') || isset($_SERVER['argv']) && in_array('analyse', $_SERVER['argv'], true)) {
             return;
         }
 
