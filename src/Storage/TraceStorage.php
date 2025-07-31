@@ -96,29 +96,45 @@ class TraceStorage
     }
 
     /**
-     * Liste toutes les traces disponibles
+     * Liste toutes les traces stockées
      */
     public function list(): array
     {
-        $files = Storage::disk($this->disk)->files('traces');
         $traces = [];
-
-        foreach ($files as $file) {
-            if (str_ends_with($file, '.zip')) {
-                $traceId = basename($file, '.zip');
-                $traces[] = [
-                    'trace_id' => $traceId,
-                    'path' => $file,
-                    'size' => Storage::disk($this->disk)->size($file),
-                    'created_at' => Storage::disk($this->disk)->lastModified($file),
-                ];
+        
+        // Lister tous les dossiers de dates dans traces/
+        $tracesDir = 'traces';
+        if (!Storage::disk($this->disk)->exists($tracesDir)) {
+            return [];
+        }
+        
+        $dateDirs = Storage::disk($this->disk)->directories($tracesDir);
+        
+        foreach ($dateDirs as $dateDir) {
+            if (!is_string($dateDir)) {
+                continue;
+            }
+            
+            $files = Storage::disk($this->disk)->files($dateDir);
+            
+            foreach ($files as $file) {
+                if (str_ends_with($file, '.zip')) {
+                    $traceId = basename($file, '.zip');
+                    $traces[] = [
+                        'trace_id' => $traceId,
+                        'path' => $file,
+                        'size' => Storage::disk($this->disk)->size($file),
+                        'created_at' => Storage::disk($this->disk)->lastModified($file),
+                    ];
+                }
             }
         }
+        
+        // Trier par date de création décroissante (plus récent en premier)
+        usort($traces, fn($a, $b) => $b['created_at'] <=> $a['created_at']);
 
         return $traces;
-    }
-
-    /**
+    }    /**
      * Supprime une trace
      */
     public function delete(string $traceId): bool
