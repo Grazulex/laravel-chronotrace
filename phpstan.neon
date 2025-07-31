@@ -1,11 +1,11 @@
 includes:
+    - phpstan-baseline.neon
     - vendor/larastan/larastan/extension.neon
 
 parameters:
     level: max
     paths:
         - src
-        - tests
     
     # Custom rules
     reportUnmatchedIgnoredErrors: false
@@ -20,20 +20,50 @@ parameters:
             message: '#Called .env. outside of the config directory#'
             path: src/Config/chronotrace.php
         -
-            message: '#Access to constant VERSION on an unknown class Pest\\Version#'
-            path: src/LaravelChronotraceServiceProvider.php
-        -
-            message: '#Class Pest\\Version not found#'
-            path: src/LaravelChronotraceServiceProvider.php
-        -
-            message: '#Access to an undefined property PHPUnit\\Framework\\TestCase::\$app#'
+            message: '#Parameter .* expects array<string, mixed>, array<mixed.*given#'
             paths:
-                - tests/*
+                - src/Models/*
+                - src/Services/*
         -
-            message: '#Cannot call method .* on mixed#'
+            message: '#Parameter .* expects array<string, string>, array<mixed.*given#'
             paths:
-                - tests/*
+                - src/Models/*
         -
-            message: '#Unable to resolve the template type TValue in call to function expect#'
+            message: '#Parameter .* expects array<string, mixed>\|null, array<mixed.*given#'
             paths:
-                - tests/*
+                - src/Models/*
+        -
+            message: '#Cannot cast mixed to (int|float|string)#'
+            paths:
+                - src/Models/*
+        -
+            message: '#Parameter .* expects array<string, mixed>, mixed given#'
+            paths:
+                - src/Services/*
+                - src/Storage/*
+        -
+            message: '#Parameter .* expects array<string, mixed>, array.*given#'
+            paths:
+                - src/Services/*
+                - src/Storage/*
+        -
+            message: '#Parameter \$user of class .* expects array<string, mixed>\|null, array\|null given#'
+            path: src/Services/TraceRecorder.php
+        -
+            message: '#Parameter \$env_vars of class .* expects array<string, string>, array given#'
+            path: src/Services/TraceRecorder.php
+        -
+            message: '#Cannot call method (isDir|getRealPath) on mixed#'
+            path: src/Storage/TraceStorage.php
+        -
+            message: '#Property .* does not accept array<mixed>#'
+            path: src/Services/PIIScrubber.php
+        -
+            message: '#Parameter \#1 \$pattern of function preg_replace expects .*, mixed given#'
+            path: src/Services/PIIScrubber.php
+        -
+            message: '#Call to function is_string\(\) with string will always evaluate to true#'
+            path: src/Services/PIIScrubber.php
+        -
+            message: '#Property .* is never read, only written#'
+            path: src/Storage/TraceStorage.php

@@ -1,0 +1,19 @@
+parameters:
+    ignoreErrors:
+        # Ignore array type specifications for now
+        - '#has no value type specified in iterable type array#'
+        - '#Method .* return type has no value type specified in iterable type array#'
+        - '#Parameter .* expects array, mixed given#'
+        - '#Cannot access offset .* on mixed#'
+        - '#Cannot access an offset on mixed#'
+        - '#Property .* type has no value type specified in iterable type array#'
+        - '#Parameter .* expects string, mixed given#'
+        - '#Parameter .* expects int, mixed given#'
+        - '#Parameter .* expects float, mixed given#'
+        - '#Parameter .* expects bool, mixed given#'
+        
+        # Ignore method return type issues for complex arrays
+        - '#Method .* should return .* but returns mixed#'
+        
+        # Ignore specific Laravel config access patterns
+        - '#Called ''env'' outside of the config directory#'

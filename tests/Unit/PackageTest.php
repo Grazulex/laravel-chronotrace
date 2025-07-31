@@ -28,7 +28,7 @@ it('has no conflicting service providers', function (): void {
     $providers = $this->getApp()->getLoadedProviders();
 
     // Vérifier qu'il n'y a qu'une instance de notre service provider
-    $chronotraceProviders = array_filter($providers, fn($provider, $key): bool => str_contains((string) $key, 'Chronotrace'), ARRAY_FILTER_USE_BOTH);
+    $chronotraceProviders = array_filter($providers, fn ($provider, $key): bool => str_contains($key, 'Chronotrace'), ARRAY_FILTER_USE_BOTH);
 
     expect(count($chronotraceProviders))->toBe(1);
 });
