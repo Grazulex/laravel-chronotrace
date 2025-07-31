@@ -6,7 +6,6 @@ use Illuminate\Http\Client\Events\RequestSending;
 use Illuminate\Http\Client\Events\ResponseReceived;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response;
-use Mockery;
 
 it('captures HTTP request events', function (): void {
     config(['chronotrace.capture.http' => true]);

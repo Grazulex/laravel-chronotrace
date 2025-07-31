@@ -5,7 +5,6 @@ use Grazulex\LaravelChronotrace\Services\TraceRecorder;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Jobs\Job;
-use Mockery;
 
 it('captures job processing events', function (): void {
     config(['chronotrace.capture.jobs' => true]);

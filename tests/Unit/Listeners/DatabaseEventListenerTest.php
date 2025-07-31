@@ -6,7 +6,6 @@ use Illuminate\Database\Connection;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\Events\TransactionBeginning;
 use Illuminate\Database\Events\TransactionCommitted;
-use Mockery;
 
 it('captures database query events', function (): void {
     config(['chronotrace.capture.database' => true]);

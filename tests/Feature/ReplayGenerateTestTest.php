@@ -87,6 +87,6 @@ it('can generate a pest test from trace', function (): void {
     expect($testContent)
         ->toContain('trace replay for POST /api/users')
         ->toContain('$response->assertStatus(201)')
-        ->toContain('uses(RefreshDatabase::class)')
+        ->toContain('uses(Tests\\TestCase::class, RefreshDatabase::class)')
         ->toContain('performs within acceptable time limits');
 });

@@ -6,6 +6,7 @@ use Exception;
 use Grazulex\LaravelChronotrace\Storage\TraceStorage;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 
 class DiagnoseCommand extends Command
 {
@@ -176,21 +177,23 @@ class DiagnoseCommand extends Command
                     if (is_string($endpoint) && $endpoint) {
                         $this->line("  S3/MinIO endpoint: <info>{$endpoint}</info>");
                     }
-                    
+
                     // Vérifier les credentials
                     if (empty($accessKey)) {
                         $this->line('  ❌ AWS_ACCESS_KEY_ID not configured');
+
                         return false;
                     }
                     if (empty($secretKey)) {
                         $this->line('  ❌ AWS_SECRET_ACCESS_KEY not configured');
+
                         return false;
                     }
-                    
+
                     $this->line('  🔑 Credentials configured');
-                    
+
                     // Test de connexion S3 réel
-                    if (!$this->testS3Connection()) {
+                    if (! $this->testS3Connection()) {
                         return false;
                     }
                     break;
@@ -205,64 +208,65 @@ class DiagnoseCommand extends Command
             return false;
         }
     }
-    
+
     /**
      * Test de connexion S3 réel avec écriture/lecture/suppression
      */
     private function testS3Connection(): bool
     {
+        $testFileName = 'traces/diagnostic-test-' . uniqid() . '.txt';
+        $disk = config('chronotrace.storage') === 's3' ? 'chronotrace_s3' : 'local';
+
         try {
             // Créer un fichier de test
-            $testFileName = 'traces/diagnostic-test-' . uniqid() . '.txt';
             $testContent = 'ChronoTrace S3 connection test - ' . date('Y-m-d H:i:s');
-            
+
             $this->line('  🧪 Testing S3 write capability...');
-            
+
             // Tenter d'écrire un fichier de test
-            $disk = config('chronotrace.storage') === 's3' ? 'chronotrace_s3' : 'local';
-            \Illuminate\Support\Facades\Storage::disk($disk)->put($testFileName, $testContent);
-            
+            Storage::disk($disk)->put($testFileName, $testContent);
+
             $this->line('  ✅ S3 write successful');
-            
+
             // Tenter de lire le fichier
             $this->line('  🧪 Testing S3 read capability...');
-            $readContent = \Illuminate\Support\Facades\Storage::disk($disk)->get($testFileName);
-            
+            $readContent = Storage::disk($disk)->get($testFileName);
+
             if ($readContent !== $testContent) {
                 $this->line('  ❌ S3 read failed - content mismatch');
+
                 return false;
             }
-            
+
             $this->line('  ✅ S3 read successful');
-            
+
             // Vérifier que le fichier existe
             $this->line('  🧪 Testing S3 file existence...');
-            if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($testFileName)) {
+            if (! Storage::disk($disk)->exists($testFileName)) {
                 $this->line('  ❌ S3 file existence check failed');
+
                 return false;
             }
-            
+
             $this->line('  ✅ S3 file existence confirmed');
-            
+
             // Nettoyer le fichier de test
             $this->line('  🧹 Cleaning up test file...');
-            \Illuminate\Support\Facades\Storage::disk($disk)->delete($testFileName);
-            
+            Storage::disk($disk)->delete($testFileName);
+
             $this->line('  ✅ S3 connection fully functional');
+
             return true;
-            
         } catch (Exception $e) {
             $this->line("  ❌ S3 connection test failed: {$e->getMessage()}");
-            
+
             // Essayer de nettoyer même en cas d'erreur
             try {
-                if (isset($testFileName) && isset($disk)) {
-                    \Illuminate\Support\Facades\Storage::disk($disk)->delete($testFileName);
-                }
+                Storage::disk($disk)->delete($testFileName);
             } catch (Exception) {
                 // Ignorer les erreurs de nettoyage
             }
-            
+
             return false;
         }
     }

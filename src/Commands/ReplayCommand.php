@@ -50,19 +50,19 @@ class ReplayCommand extends Command
                 $this->outputAsRaw($trace);
             } else {
                 $this->displayTraceHeader($trace);
-                
+
                 // Afficher le contexte si demandé
                 if ($this->option('detailed') || $this->option('context')) {
                     $this->displayContext($trace);
                 }
-                
+
                 // Afficher les détails de la requête si demandé
                 if ($this->option('detailed') || $this->option('headers')) {
                     $this->displayRequestDetails($trace);
                 }
-                
+
                 $this->displayCapturedEvents($trace);
-                
+
                 // Afficher les détails de la réponse si demandé
                 if ($this->option('detailed') || $this->option('headers') || $this->option('content')) {
                     $this->displayResponseDetails($trace);
@@ -90,20 +90,20 @@ class ReplayCommand extends Command
         $this->line("📊 Response Status: {$trace->response->status}");
         $this->line("⏱️  Duration: {$trace->response->duration}ms");
         $this->line('💾 Memory Usage: ' . number_format($trace->response->memoryUsage / 1024, 2) . ' KB');
-        
+
         // Afficher les informations utilisateur si disponibles
         if ($trace->request->user !== null) {
-            $this->line("👤 User: " . json_encode($trace->request->user));
+            $this->line('👤 User: ' . json_encode($trace->request->user));
         }
-        
+
         // Afficher l'IP et User Agent
-        if (!empty($trace->request->ip)) {
+        if ($trace->request->ip !== '' && $trace->request->ip !== '0') {
             $this->line("🌐 IP Address: {$trace->request->ip}");
         }
-        if (!empty($trace->request->userAgent)) {
+        if ($trace->request->userAgent !== '' && $trace->request->userAgent !== '0') {
             $this->line("🖥️  User Agent: {$trace->request->userAgent}");
         }
-        
+
         $this->newLine();
     }
 
@@ -113,65 +113,65 @@ class ReplayCommand extends Command
     private function displayContext(TraceData $trace): void
     {
         $this->info('=== LARAVEL CONTEXT ===');
-        
+
         // Versions
-        if (!empty($trace->context->laravel_version)) {
+        if ($trace->context->laravel_version !== '' && $trace->context->laravel_version !== '0') {
             $this->line("🚀 Laravel Version: {$trace->context->laravel_version}");
         }
-        if (!empty($trace->context->php_version)) {
+        if ($trace->context->php_version !== '' && $trace->context->php_version !== '0') {
             $this->line("🐘 PHP Version: {$trace->context->php_version}");
         }
-        
+
         // Git information
-        if (!empty($trace->context->git_commit)) {
+        if ($trace->context->git_commit !== '' && $trace->context->git_commit !== '0') {
             $this->line("📋 Git Commit: {$trace->context->git_commit}");
         }
-        if (!empty($trace->context->branch)) {
+        if ($trace->context->branch !== '' && $trace->context->branch !== '0') {
             $this->line("🌿 Git Branch: {$trace->context->branch}");
         }
-        
+
         // Configuration importante
-        if (!empty($trace->context->config)) {
+        if ($trace->context->config !== []) {
             $this->warn('⚙️  Configuration:');
             foreach ($trace->context->config as $key => $value) {
-                $valueStr = is_bool($value) ? ($value ? 'true' : 'false') : (string)$value;
+                $valueStr = $this->formatValue($value);
                 $this->line("   • {$key}: {$valueStr}");
             }
         }
-        
+
         // Variables d'environnement importantes
-        if (!empty($trace->context->env_vars)) {
+        if ($trace->context->env_vars !== []) {
             $this->warn('🌱 Environment Variables:');
             foreach ($trace->context->env_vars as $key => $value) {
-                $valueStr = is_bool($value) ? ($value ? 'true' : 'false') : (string)$value;
+                $valueStr = $this->formatValue($value);
                 $this->line("   • {$key}: {$valueStr}");
             }
         }
-        
+
         // Packages installés
-        if (!empty($trace->context->packages)) {
+        if ($trace->context->packages !== []) {
             $this->warn('📦 Installed Packages:');
             foreach ($trace->context->packages as $package => $version) {
                 $this->line("   • {$package}: {$version}");
             }
         }
-        
+
         // Middlewares
-        if (!empty($trace->context->middlewares)) {
+        if ($trace->context->middlewares !== []) {
             $this->warn('🔒 Active Middlewares:');
             foreach ($trace->context->middlewares as $middleware) {
                 $this->line("   • {$middleware}");
             }
         }
-        
+
         // Service Providers
-        if (!empty($trace->context->providers)) {
+        if ($trace->context->providers !== []) {
             $this->warn('🏗️  Service Providers:');
             foreach ($trace->context->providers as $provider) {
                 $this->line("   • {$provider}");
             }
         }
-        
+
         $this->newLine();
     }
 
@@ -181,55 +181,55 @@ class ReplayCommand extends Command
     private function displayRequestDetails(TraceData $trace): void
     {
         $this->info('=== REQUEST DETAILS ===');
-        
+
         $this->line("📝 Method: {$trace->request->method}");
         $this->line("🔗 URL: {$trace->request->url}");
-        
+
         // Query parameters
-        if (!empty($trace->request->query)) {
+        if ($trace->request->query !== []) {
             $this->warn('❓ Query Parameters:');
             foreach ($trace->request->query as $key => $value) {
-                $valueStr = is_array($value) ? json_encode($value) : (string)$value;
+                $valueStr = is_array($value) ? json_encode($value) : $this->formatValue($value);
                 $this->line("   • {$key}: {$valueStr}");
             }
         }
-        
+
         // Input data (POST/PUT body)
-        if (!empty($trace->request->input)) {
+        if ($trace->request->input !== []) {
             $this->warn('📥 Input Data:');
             foreach ($trace->request->input as $key => $value) {
-                $valueStr = is_array($value) ? json_encode($value) : (string)$value;
+                $valueStr = is_array($value) ? json_encode($value) : $this->formatValue($value);
                 $this->line("   • {$key}: {$valueStr}");
             }
         }
-        
+
         // Files uploaded
-        if (!empty($trace->request->files)) {
+        if ($trace->request->files !== []) {
             $this->warn('📁 Uploaded Files:');
             foreach ($trace->request->files as $key => $file) {
-                $fileStr = is_array($file) ? json_encode($file) : (string)$file;
+                $fileStr = is_array($file) ? json_encode($file) : $this->formatValue($file);
                 $this->line("   • {$key}: {$fileStr}");
             }
         }
-        
+
         // Session data
-        if (!empty($trace->request->session)) {
+        if ($trace->request->session !== []) {
             $this->warn('🔐 Session Data:');
             foreach ($trace->request->session as $key => $value) {
-                $valueStr = $key === '_token' ? '[SCRUBBED]' : (is_array($value) ? json_encode($value) : (string)$value);
+                $valueStr = $key === '_token' ? '[SCRUBBED]' : (is_array($value) ? json_encode($value) : $this->formatValue($value));
                 $this->line("   • {$key}: {$valueStr}");
             }
         }
-        
+
         // Headers
-        if (!empty($trace->request->headers)) {
+        if ($trace->request->headers !== []) {
             $this->warn('📋 Request Headers:');
             foreach ($trace->request->headers as $key => $value) {
-                $valueStr = is_array($value) ? implode(', ', $value) : (string)$value;
+                $valueStr = is_array($value) ? implode(', ', $value) : $this->formatValue($value);
                 $this->line("   • {$key}: {$valueStr}");
             }
         }
-        
+
         $this->newLine();
     }
 
@@ -239,46 +239,46 @@ class ReplayCommand extends Command
     private function displayResponseDetails(TraceData $trace): void
     {
         $this->info('=== RESPONSE DETAILS ===');
-        
+
         $this->line("📊 Status: {$trace->response->status}");
         $this->line("⏱️  Duration: {$trace->response->duration}ms");
         $this->line('💾 Memory: ' . number_format($trace->response->memoryUsage / 1024, 2) . ' KB');
-        
+
         // Headers de réponse
-        if (($this->option('detailed') || $this->option('headers')) && !empty($trace->response->headers)) {
+        if (($this->option('detailed') || $this->option('headers')) && $trace->response->headers !== []) {
             $this->warn('📋 Response Headers:');
             foreach ($trace->response->headers as $key => $value) {
-                $valueStr = is_array($value) ? implode(', ', $value) : (string)$value;
+                $valueStr = is_array($value) ? implode(', ', $value) : $this->formatValue($value);
                 $this->line("   • {$key}: {$valueStr}");
             }
         }
-        
+
         // Cookies
-        if (!empty($trace->response->cookies)) {
+        if ($trace->response->cookies !== []) {
             $this->warn('🍪 Cookies Set:');
             foreach ($trace->response->cookies as $cookie) {
-                $cookieStr = is_array($cookie) ? json_encode($cookie) : (string)$cookie;
+                $cookieStr = is_array($cookie) ? json_encode($cookie) : $this->formatValue($cookie);
                 $this->line("   • {$cookieStr}");
             }
         }
-        
+
         // Exception si présente
         if ($trace->response->exception !== null) {
             $this->error('❌ Exception:');
             $this->line("   {$trace->response->exception}");
         }
-        
+
         // Contenu de la réponse
-        if (($this->option('detailed') || $this->option('content')) && !empty($trace->response->content)) {
+        if (($this->option('detailed') || $this->option('content')) && ($trace->response->content !== '' && $trace->response->content !== '0')) {
             $this->warn('📄 Response Content:');
             $content = $trace->response->content;
-            
+
             // Limiter la taille d'affichage
             $maxLength = 1000;
             if (strlen($content) > $maxLength) {
                 $content = substr($content, 0, $maxLength) . '... [TRUNCATED]';
             }
-            
+
             // Essayer de formater le JSON si possible
             $decoded = json_decode($content, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
@@ -287,10 +287,10 @@ class ReplayCommand extends Command
                     $content = $formatted;
                 }
             }
-            
+
             $this->line("   {$content}");
         }
-        
+
         $this->newLine();
     }
 
@@ -335,7 +335,7 @@ class ReplayCommand extends Command
         }
 
         // Afficher un résumé statistique
-        if ($showAll && !$this->option('compact')) {
+        if ($showAll && ! $this->option('compact')) {
             $this->displayEventsSummary($trace);
         }
     }
@@ -485,12 +485,12 @@ class ReplayCommand extends Command
         $sql = $this->getStringValue($event, 'sql', 'N/A');
         $time = $this->getStringValue($event, 'time', '0');
         $connection = $this->getStringValue($event, 'connection', 'N/A');
-        
+
         $this->line("  🔍 [{$timestamp}] Query: {$sql} ({$time}ms on {$connection})");
-        
+
         // Afficher les bindings si demandé et disponibles
-        if (($this->option('detailed') || $this->option('bindings')) && isset($event['bindings']) && is_array($event['bindings']) && !empty($event['bindings'])) {
-            $this->line("     📎 Bindings: " . json_encode($event['bindings']));
+        if (($this->option('detailed') || $this->option('bindings')) && isset($event['bindings']) && is_array($event['bindings']) && $event['bindings'] !== []) {
+            $this->line('     📎 Bindings: ' . json_encode($event['bindings']));
         }
     }
 
@@ -620,6 +620,7 @@ class ReplayCommand extends Command
         }
         $this->newLine();
     }
+
     /**
      * Affiche un résumé statistique des événements
      */
@@ -637,6 +638,7 @@ class ReplayCommand extends Command
 
         if ($totalEvents === 0) {
             $this->warn('🤷 No events captured in this trace.');
+
             return;
         }
 
@@ -645,7 +647,7 @@ class ReplayCommand extends Command
         $this->line("  🗄️  Cache events: {$cacheCount}");
         $this->line("  🌐 HTTP events: {$httpCount}");
         $this->line("  ⚙️  Job events: {$jobsCount}");
-        
+
         if ($mailCount > 0) {
             $this->line("  📧 Mail events: {$mailCount}");
         }
@@ -658,7 +660,7 @@ class ReplayCommand extends Command
         if ($filesystemCount > 0) {
             $this->line("  📁 Filesystem events: {$filesystemCount}");
         }
-        
+
         $this->line("  📝 Total events: {$totalEvents}");
         $this->newLine();
     }
@@ -680,7 +682,7 @@ class ReplayCommand extends Command
         }
 
         if (is_numeric($value)) {
-            return (string) $value;
+            return $this->formatValue($value);
         }
 
         return $default;
@@ -1003,7 +1005,35 @@ class ReplayCommand extends Command
         if (is_array($value) && count($value) > 0) {
             $firstValue = $value[0];
 
-            return is_scalar($firstValue) ? (string) $firstValue : 'unknown';
+            return is_scalar($firstValue) ? $this->formatValue($firstValue) : 'unknown';
+        }
+
+        if (is_scalar($value)) {
+            return $this->formatValue($value);
+        }
+
+        return 'unknown';
+    }
+
+    /**
+     * Formate une valeur de manière sécurisée pour l'affichage
+     */
+    private function formatValue(mixed $value): string
+    {
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_null($value)) {
+            return 'null';
+        }
+
+        if (is_array($value)) {
+            return json_encode($value, JSON_THROW_ON_ERROR);
+        }
+
+        if (is_object($value)) {
+            return $value::class;
         }
 
         if (is_scalar($value)) {

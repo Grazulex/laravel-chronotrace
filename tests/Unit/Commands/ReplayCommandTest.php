@@ -5,7 +5,6 @@ use Grazulex\LaravelChronotrace\Models\TraceData;
 use Grazulex\LaravelChronotrace\Models\TraceRequest;
 use Grazulex\LaravelChronotrace\Models\TraceResponse;
 use Grazulex\LaravelChronotrace\Storage\TraceStorage;
-use Mockery;
 
 it('displays captured events from trace data', function (): void {
     $request = new TraceRequest(

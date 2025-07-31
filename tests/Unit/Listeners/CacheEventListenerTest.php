@@ -4,7 +4,6 @@ use Grazulex\LaravelChronotrace\Listeners\CacheEventListener;
 use Grazulex\LaravelChronotrace\Services\TraceRecorder;
 use Illuminate\Cache\Events\CacheHit;
 use Illuminate\Cache\Events\CacheMissed;
-use Mockery;
 
 it('captures cache hit events', function (): void {
     config(['chronotrace.capture.cache' => true]);

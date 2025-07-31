@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Grazulex\LaravelChronotrace\Storage;
 
+use Exception;
 use Grazulex\LaravelChronotrace\Models\TraceData;
 use Illuminate\Support\Facades\Storage;
 use RecursiveDirectoryIterator;
@@ -130,7 +131,7 @@ class TraceStorage
                             ];
                         }
                     }
-                } catch (\Exception $e) {
+                } catch (Exception) {
                     // Ignorer les erreurs de dossiers individuels pour continuer le listing
                     continue;
                 }
@@ -140,7 +141,7 @@ class TraceStorage
             usort($traces, fn ($a, $b): int => $b['created_at'] <=> $a['created_at']);
 
             return $traces;
-        } catch (\Exception $e) {
+        } catch (Exception) {
             // En cas d'erreur générale, retourner un tableau vide
             return [];
         }
@@ -256,16 +257,16 @@ class TraceStorage
     private function extractBundle(string $bundlePath, string $tempDir): void
     {
         $zip = new ZipArchive;
-        
+
         if ($this->isS3Disk()) {
             // Pour S3, télécharger d'abord le fichier en local
             $tempZipPath = sys_get_temp_dir() . '/chronotrace_extract_' . uniqid() . '.zip';
-            
+
             try {
                 $zipContent = Storage::disk($this->disk)->get($bundlePath);
                 if ($zipContent !== null) {
                     file_put_contents($tempZipPath, $zipContent);
-                    
+
                     if ($zip->open($tempZipPath) === true) {
                         $zip->extractTo($tempDir);
                         $zip->close();
@@ -279,7 +280,7 @@ class TraceStorage
         } else {
             // Pour les disks locaux, utiliser l'ancienne méthode
             $fullPath = Storage::disk($this->disk)->path($bundlePath);
-            
+
             if ($zip->open($fullPath) === true) {
                 $zip->extractTo($tempDir);
                 $zip->close();
@@ -293,6 +294,7 @@ class TraceStorage
     private function isS3Disk(): bool
     {
         $diskConfig = config("filesystems.disks.{$this->disk}");
+
         return isset($diskConfig['driver']) && $diskConfig['driver'] === 's3';
     }
 
