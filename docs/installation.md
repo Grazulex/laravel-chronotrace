@@ -14,15 +14,39 @@
 composer require --dev grazulex/laravel-chronotrace
 ```
 
-### 2. Publish Configuration
+### 2. Install and Configure
+
+Run the automatic installation command:
 
 ```bash
-php artisan vendor:publish --tag=chronotrace-config
+php artisan chronotrace:install
 ```
 
-This will create the configuration file at `config/chronotrace.php`.
+This command will:
+- Publish the configuration file at `config/chronotrace.php`
+- Detect your Laravel version (11+ or legacy)
+- Automatically configure middleware for Laravel 11+
+- Provide manual setup instructions if needed
 
-### 3. Configure Storage (Optional)
+If you need to force reinstall or overwrite existing configuration:
+
+```bash
+php artisan chronotrace:install --force
+```
+
+### 3. Verify Installation
+
+Check that everything is properly configured:
+
+```bash
+# Diagnose configuration
+php artisan chronotrace:diagnose
+
+# Test middleware setup
+php artisan chronotrace:test-middleware
+```
+
+### 4. Configure Storage (Optional)
 
 By default, traces are stored locally in `storage/chronotrace/`. For production environments, consider using S3 or Minio:
 
@@ -39,7 +63,7 @@ CHRONOTRACE_S3_ENDPOINT=https://your-minio.example.com
 CHRONOTRACE_S3_REGION=us-east-1
 ```
 
-### 4. Environment Configuration
+### 5. Environment Configuration
 
 Add these environment variables to your `.env` file:
 
@@ -76,29 +100,30 @@ CHRONOTRACE_QUEUE=chronotrace
 CHRONOTRACE_DEBUG=false
 ```
 
-## Service Provider Registration
+## Middleware Registration
 
-The service provider is automatically registered via Laravel's package discovery. If you need to register it manually, add it to your `config/app.php`:
+For **Laravel 11+**, the middleware is automatically configured by the `chronotrace:install` command.
 
-```php
-'providers' => [
-    // Other providers...
-    Grazulex\LaravelChronotrace\LaravelChronotraceServiceProvider::class,
-],
-```
+For **Legacy Laravel versions**, the middleware is auto-registered through the service provider.
 
-## Middleware Registration (Optional)
+### Manual Middleware Setup (Laravel 11+)
 
-To capture HTTP requests automatically, you can register the middleware in your `app/Http/Kernel.php`:
+If automatic configuration fails, manually add the middleware to your `bootstrap/app.php`:
 
 ```php
-protected $middleware = [
-    // Other middleware...
-    \Grazulex\LaravelChronotrace\Middleware\ChronoTraceMiddleware::class,
-];
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->web(append: [
+        \Grazulex\LaravelChronotrace\Middleware\ChronoTraceMiddleware::class,
+    ]);
+    $middleware->api(append: [
+        \Grazulex\LaravelChronotrace\Middleware\ChronoTraceMiddleware::class,
+    ]);
+})
 ```
 
-Or apply it to specific route groups:
+### Selective Route Registration
+
+Apply middleware to specific route groups:
 
 ```php
 Route::middleware(['chronotrace'])->group(function () {
@@ -118,10 +143,13 @@ php artisan list chronotrace
 You should see:
 
 ```
-chronotrace:list    List stored traces
-chronotrace:purge   Purge old traces  
-chronotrace:record  Record a trace for a specific URL
-chronotrace:replay  Replay and display events from a stored trace
+chronotrace:diagnose       Diagnose ChronoTrace configuration and potential issues
+chronotrace:install        Install and configure ChronoTrace middleware
+chronotrace:list           List stored traces
+chronotrace:purge          Purge old traces  
+chronotrace:record         Record a trace for a specific URL
+chronotrace:replay         Replay and display events from a stored trace
+chronotrace:test-middleware Test ChronoTrace middleware installation and activation
 ```
 
 ## Storage Permissions
@@ -147,6 +175,28 @@ php artisan queue:work --queue=chronotrace
 
 ## Troubleshooting
 
+### Run Diagnostics
+
+If you encounter any issues, start with the diagnostic command:
+
+```bash
+php artisan chronotrace:diagnose
+```
+
+This will check:
+- Configuration validity
+- Storage permissions
+- Queue connectivity
+- End-to-end functionality
+
+### Test Middleware
+
+Verify middleware installation:
+
+```bash
+php artisan chronotrace:test-middleware
+```
+
 ### Permission Issues
 
 If you encounter permission errors:
@@ -156,12 +206,16 @@ sudo chown -R $(whoami) storage/
 sudo chmod -R 755 storage/
 ```
 
-### Configuration Not Found
+### Configuration Issues
 
-If the configuration isn't published properly:
+If the configuration isn't working properly:
 
 ```bash
-php artisan vendor:publish --provider="Grazulex\LaravelChronotrace\LaravelChronotraceServiceProvider" --tag=config --force
+# Force reinstall
+php artisan chronotrace:install --force
+
+# Check configuration values
+php artisan config:show chronotrace
 ```
 
 ### Storage Issues
