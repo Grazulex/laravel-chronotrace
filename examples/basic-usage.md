@@ -10,13 +10,27 @@ This guide shows you how to get started with Laravel ChronoTrace through practic
 composer require --dev grazulex/laravel-chronotrace
 ```
 
-### Step 2: Publish Configuration
+### Step 2: Install and Configure
 
 ```bash
-php artisan vendor:publish --tag=chronotrace-config
+# Automatic installation with middleware setup
+php artisan chronotrace:install
+
+# Force reinstall if needed
+php artisan chronotrace:install --force
 ```
 
-### Step 3: Basic Configuration
+### Step 3: Verify Installation
+
+```bash
+# Diagnose configuration
+php artisan chronotrace:diagnose
+
+# Test middleware setup
+php artisan chronotrace:test-middleware
+```
+
+### Step 4: Basic Configuration
 
 Edit `config/chronotrace.php` or set environment variables:
 
@@ -50,13 +64,23 @@ php artisan chronotrace:record /api/users \
   --data='{"name":"John Doe","email":"john@example.com"}'
 ```
 
+### Request with Authentication Headers
+
+```bash
+# Record authenticated endpoint
+php artisan chronotrace:record /api/protected \
+  --method=GET \
+  --headers='{"Authorization":"Bearer your-token-here"}'
+```
+
 ### Complex Endpoint
 
 ```bash
 # Record an e-commerce checkout process
 php artisan chronotrace:record /checkout/process \
   --method=POST \
-  --data='{"cart_id": 123, "payment_method": "credit_card"}'
+  --data='{"cart_id": 123, "payment_method": "credit_card"}' \
+  --headers='{"Authorization":"Bearer token","Content-Type":"application/json"}'
 ```
 
 ## Viewing Traces
@@ -82,6 +106,12 @@ Output:
 ```bash
 # Show only the 5 most recent traces
 php artisan chronotrace:list --limit=5
+
+# Show full trace IDs for easy copying
+php artisan chronotrace:list --full-id
+
+# Combine options
+php artisan chronotrace:list --limit=10 --full-id
 ```
 
 ## Replaying Traces
@@ -147,6 +177,22 @@ php artisan chronotrace:replay a1b2c3d4 --jobs
 ```bash
 # View database and cache events only
 php artisan chronotrace:replay a1b2c3d4 --db --cache
+```
+
+### Generate Tests from Traces
+
+```bash
+# Generate a Pest test from a trace
+php artisan chronotrace:replay a1b2c3d4 --generate-test
+
+# Generate test in specific directory
+php artisan chronotrace:replay a1b2c3d4 --generate-test --test-path=tests/Integration
+
+# View the generated test
+cat tests/Generated/ChronoTrace_a1b2c3d4_Test.php
+
+# Run the generated test
+./vendor/bin/pest tests/Generated/ChronoTrace_a1b2c3d4_Test.php
 ```
 
 ## Practical Examples
@@ -216,16 +262,51 @@ This shows:
 - Job processing status
 - Job failures and retries
 
+### Example 5: Test Generation Workflow
+
+```bash
+# 1. Record a critical business workflow
+php artisan chronotrace:record /api/orders/complete \
+  --method=POST \
+  --data='{"order_id": 123, "confirm": true}' \
+  --headers='{"Authorization":"Bearer token"}'
+
+# 2. Verify the trace captured everything
+php artisan chronotrace:replay {trace-id}
+
+# 3. Generate a regression test
+php artisan chronotrace:replay {trace-id} --generate-test --test-path=tests/Business
+
+# 4. Review and run the generated test
+cat tests/Business/ChronoTrace_{trace-id}_Test.php
+./vendor/bin/pest tests/Business/ChronoTrace_{trace-id}_Test.php
+
+# 5. Commit the test to prevent regressions
+git add tests/Business/ChronoTrace_{trace-id}_Test.php
+git commit -m "Add regression test for order completion workflow"
+```
+
+This creates comprehensive tests that validate:
+- HTTP status codes
+- Response structure
+- Performance expectations
+- Database interactions
+- Cache behavior
+
 ## Common Workflows
 
 ### Daily Development Workflow
 
 ```bash
-# Morning: Check what's been recorded overnight
+# Morning: Validate setup and check overnight traces
+php artisan chronotrace:diagnose
 php artisan chronotrace:list --limit=10
 
 # During development: Record new features
 php artisan chronotrace:record /api/new-feature
+
+# Generate tests for new features
+php artisan chronotrace:replay {trace-id} --generate-test --test-path=tests/Feature
 
 # Debug issues: Replay problematic traces
 php artisan chronotrace:replay {trace-id} --db
@@ -237,13 +318,14 @@ php artisan chronotrace:purge --days=7
 ### Bug Investigation Workflow
 
 ```bash
-# 1. Reproduce the bug
+# 1. Reproduce the bug with headers if needed
 php artisan chronotrace:record /problematic-endpoint \
   --method=POST \
-  --data='{"reproduce": "bug"}'
+  --data='{"reproduce": "bug"}' \
+  --headers='{"Authorization":"Bearer token"}'
 
-# 2. Identify the trace
-php artisan chronotrace:list --limit=5
+# 2. Identify the trace with full ID
+php artisan chronotrace:list --limit=5 --full-id
 
 # 3. Analyze step by step
 php artisan chronotrace:replay {trace-id}           # Overview
@@ -251,7 +333,10 @@ php artisan chronotrace:replay {trace-id} --db      # Database issues
 php artisan chronotrace:replay {trace-id} --http    # External services
 php artisan chronotrace:replay {trace-id} --cache   # Cache problems
 
-# 4. Focus on specific areas based on findings
+# 4. Generate test to prevent regression
+php artisan chronotrace:replay {trace-id} --generate-test --test-path=tests/Bugs
+
+# 5. Focus on specific areas based on findings
 ```
 
 ### Performance Optimization Workflow
@@ -306,6 +391,19 @@ Once you're comfortable with basic usage:
 
 ## Troubleshooting
 
+### Installation Issues
+
+```bash
+# If installation fails, try diagnosing first
+php artisan chronotrace:diagnose
+
+# Test middleware setup
+php artisan chronotrace:test-middleware
+
+# Force reinstall
+php artisan chronotrace:install --force
+```
+
 ### No Traces Recorded
 
 Check your configuration:
@@ -316,6 +414,9 @@ php artisan config:show chronotrace.enabled
 
 # Check recording mode
 php artisan config:show chronotrace.mode
+
+# Run full diagnosis
+php artisan chronotrace:diagnose
 ```
 
 ### Permission Errors
