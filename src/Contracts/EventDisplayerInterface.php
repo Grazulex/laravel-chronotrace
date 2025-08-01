@@ -15,11 +15,6 @@ interface EventDisplayerInterface
     /**
      * Affiche les événements dans la console
      *
-     * @param  array<mixed>  $events
-     */
-    /**
-     * Affiche les événements dans la console
-     *
      * @param  array<string, mixed>  $options  Options d'affichage
      */
     public function display(Command $command, TraceData $trace, array $options = []): void;
