@@ -70,7 +70,7 @@ describe('ReplayCommand Enhanced Pest Generation', function (): void {
             '--generate-test' => true,
             '--test-path' => 'tests/Generated',
         ])
-            ->expectsOutput('Generating Pest test for trace test_trace_123...')
+            ->expectsOutput('Replaying trace test_trace_123...')
             ->expectsOutputToContain('✅ Pest test generated:')
             ->assertExitCode(0);
 

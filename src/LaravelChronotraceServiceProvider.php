@@ -10,6 +10,14 @@ use Grazulex\LaravelChronotrace\Commands\MiddlewareTestCommand;
 use Grazulex\LaravelChronotrace\Commands\PurgeCommand;
 use Grazulex\LaravelChronotrace\Commands\RecordCommand;
 use Grazulex\LaravelChronotrace\Commands\ReplayCommand;
+use Grazulex\LaravelChronotrace\Display\DisplayManager;
+use Grazulex\LaravelChronotrace\Display\Events\CacheEventDisplayer;
+use Grazulex\LaravelChronotrace\Display\Events\DatabaseEventDisplayer;
+use Grazulex\LaravelChronotrace\Display\Events\HttpEventDisplayer;
+use Grazulex\LaravelChronotrace\Display\Events\JobEventDisplayer;
+use Grazulex\LaravelChronotrace\Display\Formatters\JsonOutputFormatter;
+use Grazulex\LaravelChronotrace\Display\Formatters\RawOutputFormatter;
+use Grazulex\LaravelChronotrace\Display\TestGenerators\PestTestGenerator;
 use Grazulex\LaravelChronotrace\Listeners\CacheEventListener;
 use Grazulex\LaravelChronotrace\Listeners\DatabaseEventListener;
 use Grazulex\LaravelChronotrace\Listeners\HttpEventListener;
@@ -67,6 +75,22 @@ class LaravelChronotraceServiceProvider extends ServiceProvider
         $this->app->singleton(CacheEventListener::class);
         $this->app->singleton(HttpEventListener::class);
         $this->app->singleton(QueueEventListener::class);
+
+        // Enregistrer les event displayers
+        $this->app->singleton(DatabaseEventDisplayer::class);
+        $this->app->singleton(CacheEventDisplayer::class);
+        $this->app->singleton(HttpEventDisplayer::class);
+        $this->app->singleton(JobEventDisplayer::class);
+
+        // Enregistrer les output formatters
+        $this->app->singleton(JsonOutputFormatter::class);
+        $this->app->singleton(RawOutputFormatter::class);
+
+        // Enregistrer les test generators
+        $this->app->singleton(PestTestGenerator::class);
+
+        // Enregistrer le DisplayManager
+        $this->app->singleton(DisplayManager::class);
     }
 
     public function boot(): void

@@ -1,6 +1,6 @@
 <?php
 
-use Grazulex\LaravelChronotrace\Commands\ReplayCommand;
+use Grazulex\LaravelChronotrace\Display\TestGenerators\PestTestGenerator;
 use Grazulex\LaravelChronotrace\Models\TraceContext;
 use Grazulex\LaravelChronotrace\Models\TraceData;
 use Grazulex\LaravelChronotrace\Models\TraceRequest;
@@ -44,12 +44,8 @@ it('can generate a pest test from trace', function (): void {
         )
     );
 
-    // Utiliser reflection pour accéder aux méthodes privées
-    $reflectionClass = new ReflectionClass(ReplayCommand::class);
-    $buildTestMethod = $reflectionClass->getMethod('buildPestTestContent');
-    $buildTestMethod->setAccessible(true);
-
-    $command = new ReplayCommand;
+    // Utiliser le générateur PestTestGenerator directement
+    $generator = new PestTestGenerator;
 
     // Créer le dossier de test
     $testDir = 'tests/Generated';
@@ -57,30 +53,36 @@ it('can generate a pest test from trace', function (): void {
         mkdir($testDir, 0755, true);
     }
 
-    // Exécuter la méthode de construction
-    $testContent = $buildTestMethod->invoke($command, $trace);
+    // Générer le fichier de test
+    $testFile = $generator->generate($trace, $testDir);
+
+    // Vérifier que le fichier a été créé
+    expect(file_exists($testFile))->toBeTrue();
+
+    // Lire le contenu du fichier généré
+    $testContent = file_get_contents($testFile);
 
     // Vérifier le contenu généré
-    $this->assertStringContainsString("it('trace replay for POST /api/users'", $testContent);
-    $this->assertStringContainsString('$this->post(\'/api/users\'', $testContent);
-    $this->assertStringContainsString('$response->assertStatus(201)', $testContent);
-    $this->assertStringContainsString('Generated Pest test from ChronoTrace', $testContent);
-    $this->assertStringContainsString('Trace ID: test-trace-12345', $testContent);
-
-    // Écrire le fichier pour tester le format complet
-    $testFile = $testDir . '/TestGenerated.php';
-    file_put_contents($testFile, $testContent);
-
-    // Vérifier que le fichier est du PHP valide
-    $this->assertFileExists($testFile);
+    expect($testContent)->toContain("it('trace replay for POST /api/users'");
+    expect($testContent)->toContain('$this->post(\'/api/users\'');
+    expect($testContent)->toContain('$response->assertStatus(201)');
+    expect($testContent)->toContain('Generated Pest test from ChronoTrace');
+    expect($testContent)->toContain('Trace ID: test-trace-12345');
     $content = file_get_contents($testFile);
     $this->assertStringStartsWith('<?php', $content);
 
-    // Nettoyer
+    // Nettoyer récursivement
     if (file_exists($testFile)) {
         unlink($testFile);
     }
     if (is_dir($testDir)) {
+        // Supprimer tous les fichiers du répertoire d'abord
+        $files = glob($testDir . '/*');
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                unlink($file);
+            }
+        }
         rmdir($testDir);
     }
 
