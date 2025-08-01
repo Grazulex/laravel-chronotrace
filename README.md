@@ -74,6 +74,8 @@ CHRONOTRACE_STORAGE=local         # local | s3
 
 ### 3️⃣ Record Traces
 
+**For debugging real application issues:**
+
 ```bash
 # Record a specific endpoint
 php artisan chronotrace:record /api/users
@@ -88,6 +90,18 @@ php artisan chronotrace:record /api/protected \
   --method=GET \
   --headers='{"Authorization":"Bearer token123"}'
 ```
+
+**For testing ChronoTrace configuration:**
+
+```bash
+# Test that ChronoTrace captures internal operations
+php artisan chronotrace:test-internal
+
+# Test specific operation types
+php artisan chronotrace:test-internal --with-db --with-cache
+```
+
+> **💡 Key Difference**: `chronotrace:record` captures real HTTP requests for debugging actual issues, while `chronotrace:test-internal` validates that ChronoTrace is properly configured and working.
 
 ### 4️⃣ View Your Traces
 
@@ -181,14 +195,17 @@ Each trace includes comprehensive information:
 
 ## 🔧 Available Commands
 
-- **`chronotrace:install`** – Install and configure ChronoTrace middleware
-- **`chronotrace:record`** – Record a trace for a specific URL with advanced options
+### Recording & Analysis Commands
+- **`chronotrace:record`** – Record real HTTP requests for debugging actual application issues
 - **`chronotrace:list`** – List stored traces with metadata and filtering options
 - **`chronotrace:replay`** – Replay and analyze captured traces with advanced filtering and output formats
 - **`chronotrace:purge`** – Remove old traces based on retention policy
-- **`chronotrace:diagnose`** – Diagnose configuration and potential issues with comprehensive checks
+
+### Setup & Testing Commands  
+- **`chronotrace:install`** – Install and configure ChronoTrace middleware
+- **`chronotrace:test-internal`** – Test ChronoTrace configuration with internal Laravel operations
 - **`chronotrace:test-middleware`** – Test middleware installation and activation
-- **`chronotrace:test-internal`** – Test ChronoTrace with internal Laravel operations (DB, Cache, Events)
+- **`chronotrace:diagnose`** – Diagnose configuration and potential issues with comprehensive checks
 
 ### Command Examples
 
@@ -196,7 +213,10 @@ Each trace includes comprehensive information:
 # Installation and setup
 chronotrace:install --force
 
-# Record traces with various methods
+# Validate ChronoTrace is working
+chronotrace:test-internal --with-db --with-cache
+
+# Record real application traces  
 chronotrace:record /api/users --method=GET
 chronotrace:record /checkout --method=POST --data='{"cart_id": 123}'
 chronotrace:record /api/protected --headers='{"Authorization":"Bearer token"}'
@@ -255,10 +275,16 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## 📚 Documentation
 
-- **[Installation Guide](docs/installation.md)** - Step-by-step installation instructions
-- **[Configuration Guide](docs/configuration.md)** - Complete configuration reference
-- **[Commands Reference](docs/commands.md)** - Detailed guide to all commands
-- **[Examples](examples/README.md)** - Practical usage examples and workflows
+Complete documentation is available in the **[GitHub Wiki](https://github.com/Grazulex/laravel-chronotrace/wiki)**:
+
+- **[📦 Installation Guide](https://github.com/Grazulex/laravel-chronotrace/wiki/Installation)** - Step-by-step installation instructions
+- **[⚙️ Configuration Guide](https://github.com/Grazulex/laravel-chronotrace/wiki/Configuration)** - Complete configuration reference  
+- **[🔧 Commands Reference](https://github.com/Grazulex/laravel-chronotrace/wiki/Commands)** - Detailed guide to all commands
+- **[🎯 Choosing the Right Command](https://github.com/Grazulex/laravel-chronotrace/wiki/Choosing-the-Right-Command)** - When to use `record` vs `test-internal`
+- **[🧪 Testing Internal Operations](https://github.com/Grazulex/laravel-chronotrace/wiki/Testing-Internal-Operations)** - Validate ChronoTrace configuration
+- **[💡 Examples & Workflows](https://github.com/Grazulex/laravel-chronotrace/wiki/Examples)** - Practical usage examples and common workflows
+- **[🔒 Security & Storage](https://github.com/Grazulex/laravel-chronotrace/wiki/Security)** - Security features and storage options
+- **[🔍 Troubleshooting](https://github.com/Grazulex/laravel-chronotrace/wiki/Troubleshooting)** - Common issues and solutions
 
 ---
 
