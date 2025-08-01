@@ -11,6 +11,7 @@ ChronoTrace provides several Artisan commands for managing and working with trac
 - [`chronotrace:purge`](#chronotracepurge) - Purge old traces
 - [`chronotrace:diagnose`](#chronotracediagnose) - Diagnose configuration and potential issues
 - [`chronotrace:test-middleware`](#chronotracetestmiddleware) - Test middleware installation and activation
+- [`chronotrace:test-internal`](#chronotracetestinternal) - Test ChronoTrace with internal Laravel operations
 
 ## `chronotrace:install`
 
@@ -555,8 +556,85 @@ For programmatic processing:
 php artisan chronotrace:replay {trace-id} --format=json | jq '.database'
 ```
 
+## `chronotrace:test-internal`
+
+Test ChronoTrace with internal Laravel operations like database queries, cache operations, and custom events. This command addresses the limitation where `chronotrace:record` primarily captures external HTTP events.
+
+### Syntax
+
+```bash
+php artisan chronotrace:test-internal [options]
+```
+
+### Options
+
+- **`--with-db`** - Include database operation tests
+- **`--with-cache`** - Include cache operation tests
+- **`--with-events`** - Include custom event tests
+
+### Examples
+
+```bash
+# Test all internal operations
+php artisan chronotrace:test-internal --with-db --with-cache --with-events
+
+# Test only database operations
+php artisan chronotrace:test-internal --with-db
+
+# Test cache and events only
+php artisan chronotrace:test-internal --with-cache --with-events
+```
+
+### What it tests
+
+#### Database Operations (`--with-db`)
+- Creates test tables and performs CRUD operations
+- Tests both Eloquent ORM and Query Builder
+- Captures SQL queries, bindings, and timing
+
+#### Cache Operations (`--with-cache`)
+- Tests cache set/get operations
+- Tests cache invalidation
+- May fail in minimal environments without cache table
+
+#### Custom Events (`--with-events`)
+- Fires custom Laravel events
+- Tests event listener registration
+- Validates event data capture
+
+### Output
+
+The command provides detailed feedback including:
+
+- **Trace ID**: Unique identifier for the test session
+- **Operation Results**: Success/failure status for each test
+- **ChronoTrace Activity**: Debug information about captured events
+- **Usage Instructions**: How to replay or analyze the captured trace
+
+### Use Cases
+
+- **Testing Internal Operations**: When `chronotrace:record` doesn't capture internal events
+- **Configuration Validation**: Verify ChronoTrace captures database and cache operations
+- **Development Workflow**: Generate test traces for internal operations
+- **Debugging**: Understand what ChronoTrace captures during internal Laravel operations
+
+### Related Commands
+
+After running `chronotrace:test-internal`, use:
+
+```bash
+# View the captured trace
+php artisan chronotrace:replay {trace-id}
+
+# Generate test file from captured operations  
+php artisan chronotrace:replay {trace-id} --generate-test
+```
+
+For more details, see [Testing Internal Operations](testing-internal-operations.md).
+
 ## Next Steps
 
 - [Learn about event capturing](event-capturing.md)
 - [Understand storage options](storage.md)
+- [Test internal operations](testing-internal-operations.md)
 - [Check out practical examples](../examples/README.md)

@@ -188,6 +188,7 @@ Each trace includes comprehensive information:
 - **`chronotrace:purge`** – Remove old traces based on retention policy
 - **`chronotrace:diagnose`** – Diagnose configuration and potential issues with comprehensive checks
 - **`chronotrace:test-middleware`** – Test middleware installation and activation
+- **`chronotrace:test-internal`** – Test ChronoTrace with internal Laravel operations (DB, Cache, Events)
 
 ### Command Examples
 
@@ -216,6 +217,10 @@ chronotrace:replay {trace-id} --format=raw
 # Diagnostics and testing
 chronotrace:diagnose
 chronotrace:test-middleware
+
+# Test internal operations when chronotrace:record doesn't capture internal events
+chronotrace:test-internal --with-db --with-cache --with-events
+chronotrace:test-internal --with-db  # Test only database operations
 
 # Maintenance and cleanup
 chronotrace:purge --days=7 --confirm

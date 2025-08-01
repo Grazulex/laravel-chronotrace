@@ -35,6 +35,11 @@ class InstallCommand extends Command
         $this->info('🚀 You can now start using ChronoTrace:');
         $this->line('   php artisan chronotrace:list');
         $this->line('   php artisan chronotrace:record https://example.com');
+        $this->line('   php artisan chronotrace:test-internal  # Test internal operations');
+        $this->line('   php artisan chronotrace:diagnose       # Check configuration');
+        $this->newLine();
+        $this->info('📖 For more help, check the documentation at:');
+        $this->line('   https://github.com/Grazulex/laravel-chronotrace');
 
         return Command::SUCCESS;
     }
@@ -123,6 +128,9 @@ PHP;
         $this->line('<comment>    ]);</comment>');
         $this->line('<comment>})</comment>');
         $this->newLine();
+        $this->info('💡 After adding the middleware, test with:');
+        $this->line('   php artisan chronotrace:test-internal');
+        $this->line('   php artisan chronotrace:diagnose');
     }
 
     private function getLaravelVersion(): string

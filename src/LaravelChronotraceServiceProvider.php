@@ -10,6 +10,7 @@ use Grazulex\LaravelChronotrace\Commands\MiddlewareTestCommand;
 use Grazulex\LaravelChronotrace\Commands\PurgeCommand;
 use Grazulex\LaravelChronotrace\Commands\RecordCommand;
 use Grazulex\LaravelChronotrace\Commands\ReplayCommand;
+use Grazulex\LaravelChronotrace\Commands\TestInternalCommand;
 use Grazulex\LaravelChronotrace\Display\DisplayManager;
 use Grazulex\LaravelChronotrace\Display\Events\CacheEventDisplayer;
 use Grazulex\LaravelChronotrace\Display\Events\DatabaseEventDisplayer;
@@ -108,6 +109,7 @@ class LaravelChronotraceServiceProvider extends ServiceProvider
                 PurgeCommand::class,
                 DiagnoseCommand::class,
                 MiddlewareTestCommand::class,
+                TestInternalCommand::class,
             ]);
 
             // Détection automatique d'installation
