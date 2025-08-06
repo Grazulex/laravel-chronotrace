@@ -275,16 +275,16 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## 📚 Documentation
 
-Complete documentation is available in the **[GitHub Wiki](https://github.com/Grazulex/laravel-chronotrace/wiki)**:
+Pour une documentation complète et détaillée, consultez notre **[Wiki officiel](https://github.com/Grazulex/laravel-chronotrace/wiki)** :
 
-- **[📦 Installation Guide](https://github.com/Grazulex/laravel-chronotrace/wiki/Installation)** - Step-by-step installation instructions
-- **[⚙️ Configuration Guide](https://github.com/Grazulex/laravel-chronotrace/wiki/Configuration)** - Complete configuration reference  
-- **[🔧 Commands Reference](https://github.com/Grazulex/laravel-chronotrace/wiki/Commands)** - Detailed guide to all commands
-- **[🎯 Choosing the Right Command](https://github.com/Grazulex/laravel-chronotrace/wiki/Choosing-the-Right-Command)** - When to use `record` vs `test-internal`
-- **[🧪 Testing Internal Operations](https://github.com/Grazulex/laravel-chronotrace/wiki/Testing-Internal-Operations)** - Validate ChronoTrace configuration
-- **[💡 Examples & Workflows](https://github.com/Grazulex/laravel-chronotrace/wiki/Examples)** - Practical usage examples and common workflows
-- **[🔒 Security & Storage](https://github.com/Grazulex/laravel-chronotrace/wiki/Security)** - Security features and storage options
-- **[🔍 Troubleshooting](https://github.com/Grazulex/laravel-chronotrace/wiki/Troubleshooting)** - Common issues and solutions
+- **[Installation Guide](https://github.com/Grazulex/laravel-chronotrace/wiki/Installation)** - Guide complet d'installation et de configuration
+- **[Configuration](https://github.com/Grazulex/laravel-chronotrace/wiki/Configuration)** - Toutes les options de configuration disponibles
+- **[Recording Modes](https://github.com/Grazulex/laravel-chronotrace/wiki/Recording-Modes)** - Modes d'enregistrement et cas d'usage
+- **[Commands Reference](https://github.com/Grazulex/laravel-chronotrace/wiki/Commands-Reference)** - Documentation complète de toutes les commandes
+- **[Storage Options](https://github.com/Grazulex/laravel-chronotrace/wiki/Storage-Options)** - Configuration du stockage local et S3
+- **[Advanced Usage](https://github.com/Grazulex/laravel-chronotrace/wiki/Advanced-Usage)** - Techniques avancées et cas d'usage complexes
+- **[Troubleshooting](https://github.com/Grazulex/laravel-chronotrace/wiki/Troubleshooting)** - Solutions aux problèmes courants
+- **[API Reference](https://github.com/Grazulex/laravel-chronotrace/wiki/API-Reference)** - Documentation de l'API interne
 
 ---
 
