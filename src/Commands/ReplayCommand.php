@@ -229,7 +229,7 @@ class ReplayCommand extends Command
         if ($trace->request->headers !== []) {
             $this->warn('📋 Request Headers:');
             foreach ($trace->request->headers as $key => $value) {
-                $valueStr = is_array($value) ? implode(', ', array_map(fn(mixed $v): string => (string) $v, $value)) : $this->formatValue($value);
+                $valueStr = is_array($value) ? implode(', ', array_map(fn(mixed $v): string => $this->formatValue($v), $value)) : $this->formatValue($value);
                 $this->line("   • {$key}: {$valueStr}");
             }
         }
@@ -252,7 +252,7 @@ class ReplayCommand extends Command
         if (($this->option('detailed') || $this->option('headers')) && $trace->response->headers !== []) {
             $this->warn('📋 Response Headers:');
             foreach ($trace->response->headers as $key => $value) {
-                $valueStr = is_array($value) ? implode(', ', array_map(fn(mixed $v): string => (string) $v, $value)) : $this->formatValue($value);
+                $valueStr = is_array($value) ? implode(', ', array_map(fn(mixed $v): string => $this->formatValue($v), $value)) : $this->formatValue($value);
                 $this->line("   • {$key}: {$valueStr}");
             }
         }
