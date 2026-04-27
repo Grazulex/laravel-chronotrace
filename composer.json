@@ -12,15 +12,18 @@
         "productivity",
         "clean-code",
         "php8.3",
-        "laravel12"
+        "php8.4",
+        "php8.5",
+        "laravel12",
+        "laravel13"
     ],
     "type": "library",
     "homepage": "https://github.com/grazulex/laravel-chronotrace",
     "require": {
         "php": "^8.3",
-        "illuminate/support": "^12.19",
+        "illuminate/support": "^12.19|^13.0",
         "nesbot/carbon": "^3.10",
-        "illuminate/contracts": "^12.0"
+        "illuminate/contracts": "^12.0|^13.0"
     },
     "require-dev": {
         "laravel/pint": "^1.22",
@@ -29,7 +32,7 @@
         "larastan/larastan": "^3.4",
         "rector/rector": "^2.0",
         "doctrine/dbal": "^4.2",
-        "orchestra/testbench": "^10.0"
+        "orchestra/testbench": "^10.0|^11.0"
     },
     "suggest": {
         "pestphp/pest": "Required to run and generate Chronotrace tests (version >=3.0)"
