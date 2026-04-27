@@ -32,6 +32,7 @@ class RecordCommand extends Command
                 return Command::FAILURE;
             }
             if (is_array($dataJson)) {
+                /** @var array<string, mixed> $data */
                 $data = $dataJson;
             }
         }
