@@ -13,6 +13,12 @@
   [![Code Style](https://img.shields.io/badge/code%20style-pint-000000?style=flat-square&logo=laravel)](https://github.com/laravel/pint)
 </div>
 
+> [!TIP]
+> **What Laravel ChronoTrace does for you** — Record a request in production — every query, cache hit, HTTP call and queued job — and replay it locally. Turn "it happened once and we can't reproduce it" into a bug you can actually fix.
+>
+> **This package is free and maintained on my own time.** If it saves you hours, a small contribution helps me keep it going:
+> [💖 GitHub Sponsors](https://github.com/sponsors/Grazulex) · [☕ Buy Me a Coffee](https://buymeacoffee.com/grazulex) · [PayPal](https://paypal.me/strauven)
+
 ---
 
 ## 📖 Overview
@@ -285,6 +291,14 @@ Pour une documentation complète et détaillée, consultez notre **[Wiki officie
 - **[Advanced Usage](https://github.com/Grazulex/laravel-chronotrace/wiki/Advanced-Usage)** - Techniques avancées et cas d'usage complexes
 - **[Troubleshooting](https://github.com/Grazulex/laravel-chronotrace/wiki/Troubleshooting)** - Solutions aux problèmes courants
 - **[API Reference](https://github.com/Grazulex/laravel-chronotrace/wiki/API-Reference)** - Documentation de l'API interne
+
+## 💖 Support This Package
+
+Laravel ChronoTrace is free, open source and maintained on my own time. If it saves you hours, here is how you can give back:
+
+- ⭐ **Star the repository** — it helps other developers find it
+- 🐦 **Share it** with your team and network
+- 💖 **[Sponsor on GitHub](https://github.com/sponsors/Grazulex)**, **[buy me a coffee](https://buymeacoffee.com/grazulex)** or **[donate via PayPal](https://paypal.me/strauven)** — every contribution funds maintenance, new features and Laravel upgrades
 
 ---
 
