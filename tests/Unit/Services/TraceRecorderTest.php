@@ -1,6 +1,7 @@
 <?php
 
 use Grazulex\LaravelChronotrace\Services\TraceRecorder;
+use Grazulex\LaravelChronotrace\Storage\TraceStorage;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -121,4 +122,42 @@ it('generates unique trace IDs', function (): void {
     expect($traceId1)->not->toBe($traceId2);
     expect($traceId1)->toStartWith('ct_');
     expect($traceId2)->toStartWith('ct_');
+});
+
+it('falls back to sync storage when no queue connection is available', function (): void {
+    config([
+        'chronotrace.async_storage' => true,
+        'chronotrace.debug' => false,
+        'chronotrace.queue_connection' => null,
+        'chronotrace.queue_fallback' => true,
+        'queue.default' => null,
+        'queue.connections' => [],
+    ]);
+
+    $storage = Mockery::mock(TraceStorage::class);
+    $storage->shouldReceive('store')->once();
+    app()->instance(TraceStorage::class, $storage);
+
+    $recorder = app(TraceRecorder::class);
+    $traceId = $recorder->startCapture(Request::create('/test', 'GET'));
+    $recorder->finishCapture($traceId, new Response('test content', 200), 0.1, 1024);
+});
+
+it('does not store the trace when no queue connection is available and fallback is disabled', function (): void {
+    config([
+        'chronotrace.async_storage' => true,
+        'chronotrace.debug' => false,
+        'chronotrace.queue_connection' => null,
+        'chronotrace.queue_fallback' => false,
+        'queue.default' => null,
+        'queue.connections' => [],
+    ]);
+
+    $storage = Mockery::mock(TraceStorage::class);
+    $storage->shouldNotReceive('store');
+    app()->instance(TraceStorage::class, $storage);
+
+    $recorder = app(TraceRecorder::class);
+    $traceId = $recorder->startCapture(Request::create('/test', 'GET'));
+    $recorder->finishCapture($traceId, new Response('test content', 200), 0.1, 1024);
 });
