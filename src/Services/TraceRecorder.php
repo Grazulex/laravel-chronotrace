@@ -333,28 +333,20 @@ class TraceRecorder
                         throw new InvalidArgumentException("Queue connection '{$connection}' is not configured");
                     }
 
-                    if (config('chronotrace.debug', false)) {
-                        error_log("ChronoTrace: Queuing trace {$traceId} on connection {$connection}");
-                    }
-
                     Queue::connection($connection)
                         ->pushOn(config('chronotrace.queue_name', 'chronotrace'), new StoreTraceJob($traceData));
-                } catch (Exception $e) {
-                    if (config('chronotrace.debug', false)) {
-                        error_log("ChronoTrace: Queue error, falling back to sync storage: {$e->getMessage()}");
-                    }
+                } catch (Exception) {
                     // Fallback vers stockage synchrone en cas d'erreur queue
                     if (config('chronotrace.queue_fallback', true)) {
                         $storage = $this->app->make(TraceStorage::class);
                         $storage->store($traceData);
                     }
                 }
-            } elseif (config('chronotrace.debug', false)) {
-                error_log('ChronoTrace: No valid queue connection found, using sync storage');
-                if (config('chronotrace.queue_fallback', true)) {
-                    $storage = $this->app->make(TraceStorage::class);
-                    $storage->store($traceData);
-                }
+            } elseif (config('chronotrace.queue_fallback', true)) {
+                // Aucune connexion queue valide : fallback vers stockage synchrone
+                // (pas de log debug ici : le mode debug force déjà le stockage synchrone)
+                $storage = $this->app->make(TraceStorage::class);
+                $storage->store($traceData);
             }
         } else {
             // Stockage synchrone (dev/debug uniquement)
