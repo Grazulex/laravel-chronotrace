@@ -11,7 +11,6 @@
         "time-management",
         "productivity",
         "clean-code",
-        "php8.3",
         "php8.4",
         "php8.5",
         "laravel12",
@@ -20,7 +19,7 @@
     "type": "library",
     "homepage": "https://github.com/grazulex/laravel-chronotrace",
     "require": {
-        "php": "^8.3",
+        "php": "^8.4",
         "illuminate/support": "^12.19|^13.0",
         "nesbot/carbon": "^3.10",
         "illuminate/contracts": "^12.0|^13.0"
