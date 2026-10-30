@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Artisan;
+use Tests\TestCase;
 
 it('can publish config file', function (): void {
     // Vérifier que la commande de publication existe
@@ -29,7 +30,7 @@ it('can access chronotrace config values', function (): void {
 });
 
 it('has correct application environment setup', function (): void {
-    /** @var Tests\TestCase $this */
+    /** @var TestCase $this */
     expect($this->getApp()->environment())->toBe('testing');
     expect(config('database.default'))->toBe('testing');
 });

@@ -3,16 +3,17 @@
 declare(strict_types=1);
 
 use Grazulex\LaravelChronotrace\LaravelChronotraceServiceProvider;
+use Tests\TestCase;
 
 it('can be instantiated', function (): void {
-    /** @var Tests\TestCase $this */
+    /** @var TestCase $this */
     $provider = new LaravelChronotraceServiceProvider($this->getApp());
 
     expect($provider)->toBeInstanceOf(LaravelChronotraceServiceProvider::class);
 });
 
 it('registers the service provider correctly', function (): void {
-    /** @var Tests\TestCase $this */
+    /** @var TestCase $this */
     $providers = $this->getApp()->getLoadedProviders();
 
     expect($providers)->toHaveKey(LaravelChronotraceServiceProvider::class);

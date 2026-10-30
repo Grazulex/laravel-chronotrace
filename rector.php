@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Rector\Config\RectorConfig;
 use Rector\Set\ValueObject\LevelSetList;
 use Rector\Set\ValueObject\SetList;
+use Rector\TypeDeclaration\Rector\ArrowFunction\AddArrowFunctionReturnTypeRector;
 
 return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->paths([
@@ -26,6 +27,9 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->skip([
         // Skip specific rules
         // \Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPromotedPropertyRector::class,
+        AddArrowFunctionReturnTypeRector::class => [
+            __DIR__ . '/tests',
+        ],
     ]);
 
     // Auto-import fully qualified class names

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Grazulex\LaravelChronotrace\LaravelChronotraceServiceProvider;
 use Illuminate\Foundation\Application;
+use Tests\TestCase;
 
 it('package is correctly installed', function (): void {
     expect(class_exists(LaravelChronotraceServiceProvider::class))->toBeTrue();
@@ -16,7 +17,7 @@ it('config file path is accessible', function (): void {
 });
 
 it('application can boot without errors', function (): void {
-    /** @var Tests\TestCase $this */
+    /** @var TestCase $this */
     // Test que l'application peut démarrer sans erreur
     $app = $this->getApp();
     expect($app)->toBeInstanceOf(Application::class);
@@ -24,7 +25,7 @@ it('application can boot without errors', function (): void {
 });
 
 it('has no conflicting service providers', function (): void {
-    /** @var Tests\TestCase $this */
+    /** @var TestCase $this */
     $providers = $this->getApp()->getLoadedProviders();
 
     // Vérifier qu'il n'y a qu'une instance de notre service provider

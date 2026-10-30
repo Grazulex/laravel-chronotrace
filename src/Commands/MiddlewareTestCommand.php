@@ -1,11 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Grazulex\LaravelChronotrace\Commands;
 
 use Exception;
 use Grazulex\LaravelChronotrace\Middleware\ChronoTraceMiddleware;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class MiddlewareTestCommand extends Command
 {
@@ -107,7 +111,7 @@ class MiddlewareTestCommand extends Command
             // Vérifier que le middleware peut traiter la requête
             $middleware = app(ChronoTraceMiddleware::class);
 
-            $response = $middleware->handle($request, fn ($req) => response('Test response', 200));
+            $response = $middleware->handle($request, fn ($req): ResponseFactory|Response => response('Test response', 200));
 
             if ($response->getStatusCode() === 200) {
                 $this->line('  ✅ Middleware processed request successfully');

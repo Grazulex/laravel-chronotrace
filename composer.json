@@ -21,16 +21,16 @@
     "require": {
         "php": "^8.4",
         "illuminate/support": "^12.19|^13.0",
-        "nesbot/carbon": "^3.10",
+        "nesbot/carbon": "^3.15",
         "illuminate/contracts": "^12.0|^13.0"
     },
     "require-dev": {
-        "laravel/pint": "^1.22",
+        "laravel/pint": "^1.32",
         "pestphp/pest": "^3.8",
         "pestphp/pest-plugin-laravel": "^3.2",
-        "larastan/larastan": "^3.4",
-        "rector/rector": "^2.0",
-        "doctrine/dbal": "^4.2",
+        "larastan/larastan": "^3.13",
+        "rector/rector": "^2.8",
+        "doctrine/dbal": "^4.5",
         "orchestra/testbench": "^10.0|^11.0"
     },
     "suggest": {
@@ -89,9 +89,9 @@
             "./vendor/bin/rector"
         ],
         "full": [
+            "composer run-script rector",
             "composer run-script pint",
             "composer run-script phpstan",
-            "composer run-script rector",
             "composer run-script test"
         ]
     },
