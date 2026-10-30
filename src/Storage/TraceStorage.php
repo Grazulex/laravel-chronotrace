@@ -138,7 +138,7 @@ class TraceStorage
             }
 
             // Trier par date de création décroissante (plus récent en premier)
-            usort($traces, fn ($a, $b): int => $b['created_at'] <=> $a['created_at']);
+            usort($traces, fn (array $a, array $b): int => $b['created_at'] <=> $a['created_at']);
 
             return $traces;
         } catch (Exception) {

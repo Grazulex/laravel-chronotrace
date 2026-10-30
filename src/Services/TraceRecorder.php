@@ -13,6 +13,7 @@ use Grazulex\LaravelChronotrace\Models\TraceResponse;
 use Grazulex\LaravelChronotrace\Storage\TraceStorage;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -219,7 +220,7 @@ class TraceRecorder
         $files = [];
         foreach ($request->allFiles() as $key => $file) {
             if (is_array($file)) {
-                $files[$key] = array_map(fn ($f): array => [
+                $files[$key] = array_map(fn (UploadedFile $f): array => [
                     'name' => $f->getClientOriginalName(),
                     'size' => $f->getSize(),
                     'mime' => $f->getMimeType(),
@@ -319,9 +320,7 @@ class TraceRecorder
             $connection = config('chronotrace.queue_connection');
 
             // Auto-détection de la connexion queue si non spécifiée
-            if ($connection === null) {
-                $connection = $this->detectAvailableQueueConnection();
-            }
+            $connection ??= $this->detectAvailableQueueConnection();
 
             if (is_string($connection) && $connection !== '') {
                 try {
