@@ -10,6 +10,11 @@ describe('MiddlewareTestCommand', function (): void {
     });
 
     it('reports configuration status', function (): void {
+        // The middleware logs debug traces with error_log(). PHPUnit 12 redirects
+        // error_log() to its own file right before each test and reports what it
+        // finds there as unexpected output (a risky test), so redirect it here.
+        ini_set('error_log', sys_get_temp_dir() . '/chronotrace-tests.log');
+
         config(['chronotrace.enabled' => true]);
         config(['chronotrace.mode' => 'always']);
         config(['chronotrace.debug' => true]);

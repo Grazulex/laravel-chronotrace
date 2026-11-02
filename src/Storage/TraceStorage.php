@@ -113,10 +113,6 @@ class TraceStorage
             $dateDirs = Storage::disk($this->disk)->directories($tracesDir);
 
             foreach ($dateDirs as $dateDir) {
-                if (! is_string($dateDir)) {
-                    continue;
-                }
-
                 try {
                     $files = Storage::disk($this->disk)->files($dateDir);
 

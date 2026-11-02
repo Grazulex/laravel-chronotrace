@@ -1,6 +1,5 @@
 <?php
 
-use Exception;
 use Grazulex\LaravelChronotrace\Jobs\StoreTraceJob;
 use Grazulex\LaravelChronotrace\Models\TraceContext;
 use Grazulex\LaravelChronotrace\Models\TraceData;
@@ -9,7 +8,6 @@ use Grazulex\LaravelChronotrace\Models\TraceResponse;
 use Grazulex\LaravelChronotrace\Storage\TraceStorage;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Queue;
-use RuntimeException;
 
 beforeEach(function (): void {
     // Configuration pour les tests
@@ -77,6 +75,10 @@ function createMockTraceData(): TraceData
         ]
     );
 }
+
+afterEach(function (): void {
+    Mockery::close();
+});
 
 it('can be dispatched to queue', function (): void {
     Queue::fake();
