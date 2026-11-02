@@ -15,6 +15,10 @@ abstract class TestCase extends Orchestra
     #[Override]
     protected function setUp(): void
     {
+        // The package writes debug traces with error_log(); keep them out of the
+        // test output (PHPUnit flags unexpected output as a risky test).
+        ini_set('error_log', sys_get_temp_dir() . '/chronotrace-tests.log');
+
         parent::setUp();
 
         // Execute migration if needed
