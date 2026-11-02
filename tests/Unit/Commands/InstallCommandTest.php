@@ -1,11 +1,6 @@
 <?php
 
 use Grazulex\LaravelChronotrace\Commands\InstallCommand;
-use Mockery;
-
-afterEach(function (): void {
-    Mockery::close();
-});
 
 it('runs installation successfully', function (): void {
     $this->artisan(InstallCommand::class)
