@@ -98,6 +98,11 @@
     "config": {
         "allow-plugins": {
             "pestphp/pest-plugin": true
+        },
+        "policy": {
+            "cooldown": {
+                "period": "3 days"
+            }
         }
     }
 }
