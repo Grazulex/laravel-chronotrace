@@ -9,6 +9,7 @@ use Grazulex\LaravelChronotrace\Models\TraceData;
 use Illuminate\Support\Facades\Storage;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use RuntimeException;
 use SplFileInfo;
 use ZipArchive;
 
@@ -176,6 +177,129 @@ class TraceStorage
         }
 
         return $deleted;
+    }
+
+    /**
+     * Find the stored bundle path of a trace, whatever the day it was stored
+     */
+    public function findBundlePath(string $traceId): ?string
+    {
+        $todayPath = $this->getBundlePath($traceId);
+        if (Storage::disk($this->disk)->exists($todayPath)) {
+            return $todayPath;
+        }
+
+        foreach ($this->list() as $trace) {
+            if (($trace['trace_id'] ?? null) === $traceId && is_string($trace['path'] ?? null)) {
+                return $trace['path'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Export the bundle of a stored trace to a local archive file
+     *
+     * @return string The path of the written archive
+     *
+     * @throws RuntimeException When the trace does not exist or the archive cannot be written
+     */
+    public function export(string $traceId, string $destination): string
+    {
+        $bundlePath = $this->findBundlePath($traceId);
+        if ($bundlePath === null) {
+            throw new RuntimeException("Trace {$traceId} not found.");
+        }
+
+        $content = Storage::disk($this->disk)->get($bundlePath);
+        if ($content === null) {
+            throw new RuntimeException("Unable to read the bundle of trace {$traceId}.");
+        }
+
+        $parentDir = dirname($destination);
+        if (! is_dir($parentDir) && ! @mkdir($parentDir, 0755, true) && ! is_dir($parentDir)) {
+            throw new RuntimeException("Unable to create directory {$parentDir}.");
+        }
+
+        if (@file_put_contents($destination, $content) === false) {
+            throw new RuntimeException("Unable to write archive {$destination}.");
+        }
+
+        return $destination;
+    }
+
+    /**
+     * Import a trace archive produced by export() into the storage
+     *
+     * @return string The ID of the imported trace
+     *
+     * @throws RuntimeException When the archive is invalid or the trace already exists
+     */
+    public function import(string $archivePath, bool $overwrite = false): string
+    {
+        if (! is_file($archivePath) || ! is_readable($archivePath)) {
+            throw new RuntimeException("Archive {$archivePath} not found or not readable.");
+        }
+
+        $traceId = $this->readArchiveTraceId($archivePath);
+
+        $existingPath = $this->findBundlePath($traceId);
+        if ($existingPath !== null) {
+            if (! $overwrite) {
+                throw new RuntimeException("Trace {$traceId} already exists. Use --force to overwrite it.");
+            }
+
+            Storage::disk($this->disk)->delete($existingPath);
+        }
+
+        $content = file_get_contents($archivePath);
+        if ($content === false) {
+            throw new RuntimeException("Unable to read archive {$archivePath}.");
+        }
+
+        if (! Storage::disk($this->disk)->put($this->getBundlePath($traceId), $content)) {
+            throw new RuntimeException("Unable to store trace {$traceId}.");
+        }
+
+        return $traceId;
+    }
+
+    /**
+     * Validate a trace archive without extracting it and return its trace ID
+     */
+    private function readArchiveTraceId(string $archivePath): string
+    {
+        $zip = new ZipArchive;
+        if ($zip->open($archivePath, ZipArchive::RDONLY) !== true) {
+            throw new RuntimeException("{$archivePath} is not a valid trace archive.");
+        }
+
+        try {
+            $manifestContent = $zip->getFromName('manifest.json');
+        } finally {
+            $zip->close();
+        }
+
+        if (! is_string($manifestContent)) {
+            throw new RuntimeException("{$archivePath} does not contain a trace manifest.");
+        }
+
+        $manifest = json_decode($manifestContent, true);
+        if (! is_array($manifest)
+            || ! is_string($manifest['trace_id'] ?? null)
+            || ! is_string($manifest['timestamp'] ?? null)
+            || ! is_string($manifest['environment'] ?? null)
+        ) {
+            throw new RuntimeException("{$archivePath} contains an invalid trace manifest.");
+        }
+
+        $traceId = $manifest['trace_id'];
+        if (preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*$/', $traceId) !== 1) {
+            throw new RuntimeException("{$archivePath} contains an invalid trace ID.");
+        }
+
+        return $traceId;
     }
 
     private function getBundlePath(string $traceId): string
