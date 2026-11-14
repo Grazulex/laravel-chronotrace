@@ -4,6 +4,8 @@ namespace Grazulex\LaravelChronotrace;
 
 use Exception;
 use Grazulex\LaravelChronotrace\Commands\DiagnoseCommand;
+use Grazulex\LaravelChronotrace\Commands\ExportCommand;
+use Grazulex\LaravelChronotrace\Commands\ImportCommand;
 use Grazulex\LaravelChronotrace\Commands\InstallCommand;
 use Grazulex\LaravelChronotrace\Commands\ListCommand;
 use Grazulex\LaravelChronotrace\Commands\MiddlewareTestCommand;
@@ -110,6 +112,8 @@ class LaravelChronotraceServiceProvider extends ServiceProvider
                 DiagnoseCommand::class,
                 MiddlewareTestCommand::class,
                 TestInternalCommand::class,
+                ExportCommand::class,
+                ImportCommand::class,
             ]);
 
             // Détection automatique d'installation
