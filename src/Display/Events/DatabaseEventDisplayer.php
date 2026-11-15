@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Grazulex\LaravelChronotrace\Display\Events;
 
 use Grazulex\LaravelChronotrace\Display\AbstractEventDisplayer;
+use Grazulex\LaravelChronotrace\Display\Analysis\SqlAnalyzer;
 use Grazulex\LaravelChronotrace\Models\TraceData;
 use Illuminate\Console\Command;
 
@@ -41,6 +42,46 @@ class DatabaseEventDisplayer extends AbstractEventDisplayer
                 'transaction_rollback' => $command->line("  ❌ [{$timestamp}] Transaction ROLLBACK on " . $this->getStringValue($event, 'connection', 'N/A')),
                 default => $command->line("  ❓ [{$timestamp}] Unknown database event: {$type}"),
             };
+        }
+
+        $command->newLine();
+
+        if (! empty($options['analyze'])) {
+            $this->displayAnalysis($command, $events, $options);
+        }
+    }
+
+    /**
+     * @param  array<mixed>  $events
+     * @param  array<string, mixed>  $options
+     */
+    private function displayAnalysis(Command $command, array $events, array $options): void
+    {
+        $threshold = isset($options['slow_threshold']) && is_numeric($options['slow_threshold'])
+            ? (float) $options['slow_threshold']
+            : SqlAnalyzer::DEFAULT_SLOW_THRESHOLD_MS;
+
+        $result = (new SqlAnalyzer($threshold))->analyze($events);
+
+        $command->warn('🧪 SQL ANALYSIS');
+
+        if ($result['n_plus_one'] === [] && $result['duplicates'] === [] && $result['slow'] === []) {
+            $command->line('  ✅ No N+1, duplicate or slow queries detected');
+            $command->newLine();
+
+            return;
+        }
+
+        foreach ($result['n_plus_one'] as $issue) {
+            $command->line("  ⚠️  N+1: {$issue['sql']} (run {$issue['count']} times, {$issue['total_time']}ms total)");
+        }
+
+        foreach ($result['duplicates'] as $issue) {
+            $command->line("  ♻️  Duplicate: {$issue['sql']} (run {$issue['count']} times with identical bindings, {$issue['total_time']}ms total)");
+        }
+
+        foreach ($result['slow'] as $issue) {
+            $command->line("  🐢 Slow: {$issue['sql']} ({$issue['time']}ms, threshold {$threshold}ms)");
         }
 
         $command->newLine();

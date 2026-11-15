@@ -29,7 +29,9 @@ class ReplayCommand extends Command
                                         {--headers : Show request and response headers}
                                         {--content : Show response content}
                                         {--bindings : Show SQL query bindings}
-                                        {--compact : Show minimal information only}';
+                                        {--compact : Show minimal information only}
+                                        {--analyze : Flag N+1, duplicate and slow SQL queries}
+                                        {--slow-threshold=100 : Slow query threshold in ms (used with --analyze)}';
 
     protected $description = 'Replay events from a stored trace or generate Pest tests. Uses modular architecture with specialized displayers.';
 
@@ -81,6 +83,8 @@ class ReplayCommand extends Command
                     'detailed' => $this->option('detailed'),
                     'bindings' => $this->option('bindings'),
                     'compact' => $this->option('compact'),
+                    'analyze' => $this->option('analyze'),
+                    'slow_threshold' => $this->option('slow-threshold'),
                 ];
 
                 $displayManager->displayEvents($this, $trace, $options);
